@@ -1,0 +1,59 @@
+[
+  {
+    "id": "gi-001",
+    "title": "Case 1",
+    "subspecialty": "Gastrointestinal Radiology",
+    "tags": ["abdomen", "RLQ pain"],
+    "images": [
+      "data/images/gi_appendix_1.png",
+      "data/images/gi_appendix_2.png"
+    ],
+    "boardPrompt": "You are evaluating a 23-year-old presenting with 24 hours of right lower quadrant abdominal pain, fever, and mild leukocytosis. Imaging includes contrast-enhanced CT of the abdomen and pelvis. Please describe key findings, provide the most likely diagnosis, and recommend next steps.",
+    "expectedAnswer": "Diagnosis: Acute appendicitis. Key: enlarged noncompressible appendix, periappendiceal stranding, +/- appendicolith; assess perforation/abscess. Management: urgent surgical consult; antibiotics per protocol.",
+    "rubric": [
+      "names acute appendicitis",
+      "mentions enlarged appendix or >6 mm",
+      "mentions periappendiceal stranding",
+      "considers appendicolith",
+      "addresses complications (perforation/abscess)",
+      "recommends surgery/antibiotics"
+    ]
+  },
+  {
+    "id": "thorax-002",
+    "title": "Case 2",
+    "subspecialty": "Thoracic Radiology",
+    "tags": ["ctpa", "chest pain"],
+    "images": ["data/images/thorax_ctpa_1.png"],
+    "boardPrompt": "A 62-year-old with acute pleuritic chest pain and tachycardia underwent CTPA. Please interpret the exam, state the diagnosis, comment on severity, and suggest next steps.",
+    "expectedAnswer": "Diagnosis: Segmental PE in RLL. Key: filling defects, clot burden, RV/LV ratio, ancillary infarcts/effusions. Management: anticoagulation if not contraindicated; risk stratification.",
+    "rubric": [
+      "names pulmonary embolism",
+      "describes segmental or lobar location",
+      "comments on RV/LV ratio or right heart strain",
+      "mentions clot burden or distribution",
+      "notes pleural infarct/effusion if present",
+      "recommends anticoagulation"
+    ]
+  },
+  {
+    "id": "msk-003",
+    "title": "Case 3",
+    "subspecialty": "Musculoskeletal Radiology",
+    "tags": ["knee", "MRI"],
+    "images": [
+      "data/images/msk_knee_1.png",
+      "data/images/msk_knee_2.png"
+    ],
+    "boardPrompt": "A 28-year-old athlete presents with acute knee injury after pivoting. MRI of the knee is provided. Please describe findings, state the primary diagnosis, and list important associated injuries.",
+    "expectedAnswer": "Diagnosis: Complete ACL tear. Key: fiber discontinuity, anterior tibial translation, pivot-shift bone bruising. Associated: MCL sprain, meniscal tears.",
+    "rubric": [
+      "names ACL tear",
+      "describes fiber discontinuity or abnormal ACL",
+      "mentions pivot-shift bone bruise pattern",
+      "notes anterior tibial translation",
+      "assesses menisci",
+      "mentions collateral ligaments"
+    ]
+  }
+]
