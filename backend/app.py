@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any
 
 from fastapi import FastAPI, HTTPException, Depends, Query, Request, Header
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, EmailStr, Field
@@ -54,13 +53,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_TTL_MIN", "1440"))
 ADMIN_EMAILS = {e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()}
 
 # Auth modes: off | apikey | jwt (default)
-AUTH_MODE = os.getenv("AUTH_MODE", "jwt").lower()
+# normalize so "api_key" and "apikey" both work
+AUTH_MODE = os.getenv("AUTH_MODE", "jwt").lower().replace("_", "")
 API_KEY = os.getenv("API_KEY", "")
 
-# If bcrypt is noisy on macOS/Py3.13, you can switch to pbkdf2:
+# Password hashing (if you use /auth endpoints)
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-# pwd_ctx = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
-
 def hash_pw(p: str) -> str: return pwd_ctx.hash(p)
 def verify_pw(p: str, h: str) -> bool: return pwd_ctx.verify(p, h)
 
@@ -79,17 +77,19 @@ def _decode_jwt(token: str) -> str:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 async def current_identity(request: Request, x_api_key: str = Header(default=None)) -> str:
-    # Allow CORS preflight without auth
+    # Let CORS preflight pass through without auth checks
     if request.method == "OPTIONS":
         return "preflight@cors"
 
     if AUTH_MODE == "off":
         return "demo@local"
+
     if AUTH_MODE == "apikey":
         if API_KEY and x_api_key == API_KEY:
             return "demo@apikey"
         raise HTTPException(status_code=401, detail="Invalid API key")
-    # JWT mode
+
+    # JWT mode (default)
     auth = request.headers.get("authorization") or request.headers.get("Authorization")
     if not auth or not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
@@ -102,32 +102,41 @@ def require_admin(email_or_identity: str):
             raise HTTPException(status_code=403, detail="Admin-only operation")
 
 # -----------------------------
-# FastAPI app (CREATE FIRST)
+# FastAPI app + CORS
 # -----------------------------
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="Oral Boards Trainer API", version="0.3")
+
+# CORS_ORIGIN can be a comma-separated list (e.g. "http://localhost:8080,http://127.0.0.1:8080")
+_raw_origins = os.getenv("CORS_ORIGIN", "http://localhost:8080")
+_allow_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
+_allow_credentials = _allow_origins != ["*"]  # credentials not allowed with wildcard origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("CORS_ORIGIN", "*")],
-    allow_credentials=True,
+    allow_origins=_allow_origins,
+    allow_credentials=_allow_credentials,
     allow_methods=["*"],
-    allow_headers=["*"],
+    # Explicit list to avoid picky preflight handling on some Starlette versions:
+    allow_headers=["Content-Type", "Authorization", "X-API-KEY", "x-api-key"],
 )
 
-# Optional request logs
+# Optional request logs (shows preflight details)
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
-    log.info(">>> %s %s origin=%s", request.method, request.url.path, request.headers.get("origin"))
+    log.info(
+        ">>> %s %s origin=%s ACRM=%s ACRH=%s",
+        request.method, request.url.path,
+        request.headers.get("origin"),
+        request.headers.get("access-control-request-method"),
+        request.headers.get("access-control-request-headers"),
+    )
     resp = await call_next(request)
     log.info("<<< %s %s %s", request.method, request.url.path, resp.status_code)
     return resp
 
-# Catch-all OPTIONS so preflights never hit protected dependencies
-@app.options("/{full_path:path}", include_in_schema=False)
-def cors_preflight(full_path: str):
-    return Response(status_code=204)
-
-# Optional: friendly root & favicon
+# Friendly root & favicon
 @app.get("/", include_in_schema=False)
 def root(): return RedirectResponse("/docs")
 @app.get("/favicon.ico", include_in_schema=False)
@@ -237,7 +246,7 @@ def _write_cases_file(items: List[Dict[str, Any]]):
 def health():
     return {"ok": True, "mongo": USE_MONGO, "authMode": AUTH_MODE, "model": OPENAI_MODEL}
 
-# Auth (JWT mode helpers remain even if AUTH_MODE != jwt)
+# Auth (JWT helpers still available even if AUTH_MODE != jwt)
 @app.post("/api/auth/register", response_model=TokenOut)
 async def register(body: UserCreate):
     if await get_user(body.email):

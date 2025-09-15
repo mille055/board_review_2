@@ -9,14 +9,15 @@
       "data/images/gi_appendix_2.png"
     ],
     "boardPrompt": "You are evaluating a 23-year-old presenting with 24 hours of right lower quadrant abdominal pain, fever, and mild leukocytosis.",
-    "expectedAnswer": "Diagnosis: Acute appendicitis. Key: enlarged noncompressible appendix, periappendiceal stranding, +/- appendicolith; assess perforation/abscess. Management: urgent surgical consult; antibiotics per protocol.",
+    "expectedAnswer": "Diagnosis: Acute appendicitis. Key: enlarged appendix, periappendiceal stranding and free fluid, +/- appendicolith; assess perforation/abscess. Management: urgent surgical consult.",
     "rubric": [
       "names acute appendicitis",
       "mentions enlarged or dilated appendix or >6 mm",
-      "mentions periappendiceal stranding",
+      "mentions stranding",
+      "mentions fluid",
       "considers appendicolith",
-      "addresses complications (perforation/abscess)",
-      "recommends surgery/antibiotics"
+      "addresses complications (peforation, which could manifest as extraluminal or free air, or abscess, or discontinuity of the wall)",
+      "recommends surgery or surgical consultation. Antibiotics may also be mentioned."
     ]
   },
   {
