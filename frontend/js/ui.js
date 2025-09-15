@@ -147,14 +147,15 @@ export function initUI(){
       try {
         // Only call if gradeWithLLM exists in your grade.js
         const mod = await import('./grade.js');
-        if (typeof mod.gradeWithLLM === 'function') {
+        if (typeof mod.gradeWithLLM === 'function' && CONFIG.FEEDBACK_MODE !== 'heuristic') {
           const llm = await mod.gradeWithLLM({caseObj, transcript: tr, heur});
           if (llm?.feedback) {
             vFeedback.textContent += (vFeedback.textContent ? '\n\n— LLM feedback —\n' : '') + llm.feedback;
           }
         }
       } catch (e) {
-        console.warn('LLM feedback skipped:', e);
+        console.error('[UI] LLM call failed', e);
+        vFeedback.textContent += `\n\n— LLM error —\n${e.message || e}`;
       }
     }
 

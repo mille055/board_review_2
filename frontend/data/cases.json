@@ -8,11 +8,11 @@
       "data/images/gi_appendix_1.png",
       "data/images/gi_appendix_2.png"
     ],
-    "boardPrompt": "You are evaluating a 23-year-old presenting with 24 hours of right lower quadrant abdominal pain, fever, and mild leukocytosis. Imaging includes contrast-enhanced CT of the abdomen and pelvis. Please describe key findings, provide the most likely diagnosis, and recommend next steps.",
+    "boardPrompt": "You are evaluating a 23-year-old presenting with 24 hours of right lower quadrant abdominal pain, fever, and mild leukocytosis.",
     "expectedAnswer": "Diagnosis: Acute appendicitis. Key: enlarged noncompressible appendix, periappendiceal stranding, +/- appendicolith; assess perforation/abscess. Management: urgent surgical consult; antibiotics per protocol.",
     "rubric": [
       "names acute appendicitis",
-      "mentions enlarged appendix or >6 mm",
+      "mentions enlarged or dilated appendix or >6 mm",
       "mentions periappendiceal stranding",
       "considers appendicolith",
       "addresses complications (perforation/abscess)",
@@ -45,7 +45,7 @@
       "data/images/msk_knee_1.png",
       "data/images/msk_knee_2.png"
     ],
-    "boardPrompt": "A 28-year-old athlete presents with acute knee injury after pivoting. MRI of the knee is provided. Please describe findings, state the primary diagnosis, and list important associated injuries.",
+    "boardPrompt": "A 28-year-old athlete presents with acute knee injury after pivoting.",
     "expectedAnswer": "Diagnosis: Complete ACL tear. Key: fiber discontinuity, anterior tibial translation, pivot-shift bone bruising. Associated: MCL sprain, meniscal tears.",
     "rubric": [
       "names ACL tear",
