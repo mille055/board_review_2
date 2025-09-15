@@ -56,5 +56,36 @@
       "assesses menisci",
       "mentions collateral ligaments"
     ]
+  },
+  {
+  "id": "us-001",
+  "title": "Case 4",
+  "subspecialty": "Ultrasound",
+  "tags": ["ultrasound", "kidney", "calcification"],
+  "images": [
+    "data/images/gu_nephrocalcinosis_1.png",
+    "data/images/gu_nephrocalcinosis_2.png"
+  ],
+  "boardPrompt": "A 35-year-old patient is referred for evaluation of recurrent nephrolithiasis.",
+  "expectedAnswer": "Diagnosis: Medullary nephrocalcinosis. Key: echogenic medullary pyramids with shadowing on ultrasound; cortical sparing. Differential: primary hyperparathyroidism, medullary sponge kidney, distal (type 1) renal tubular acidosis, hypervitaminosis D, sarcoidosis. Management: address underlying metabolic cause; nephrology referral.",
+  "rubric": [
+    "names medullary nephrocalcinosis",
+    "describes echogenic renal pyramids",
+    "mentions posterior acoustic shadowing",
+    "notes cortical sparing",
+    "provides a short differential (e.g., hyperparathyroidism, medullary sponge kidney, distal RTA, hypervitaminosis D, sarcoidosis)",
+    "recommends further metabolic evaluation or nephrology referral"
+  ],
+  "differential": {
+    "items": [
+      { "label": "Primary hyperparathyroidism", "synonyms": ["hyperparathyroidism"] },
+      { "label": "Medullary sponge kidney" },
+      { "label": "Distal (type 1) renal tubular acidosis", "synonyms": ["distal RTA", "type 1 RTA"] },
+      { "label": "Hypervitaminosis D" },
+      { "label": "Sarcoidosis" }
+    ],
+    "min_required": 2
   }
+}
+
 ]
