@@ -86,6 +86,41 @@
     ],
     "min_required": 2
   }
+},
+{
+  "id": "us-002",
+  "title": "Case 5",
+  "subspecialty": "Ultrasound",
+  "tags": ["ultrasound", "scrotum", "Doppler", "epididymitis", "pyocele"],
+  "images": [
+    "data/images/us_epididymitis_1.png",
+    "data/images/us_epididymitis_2.png",
+    "data/images/us_epididymitis_3.png",
+    "data/images/us_epididymitis_4.png", 
+    "data/images/us_epididymitis_5.png"
+  ],
+  "boardPrompt": "A 75-year-old male presents with acute right scrotal pain and swelling, low-grade fever, and dysuria.",
+  "expectedAnswer": "Diagnosis: Acute right epididymitis with suspected pyocele (complex, multiseptated peritesticular fluid). Key findings: right epididymal enlargement and heterogeneous echotexture; marked hyperemia on color Doppler; multiseptated fluid collection consistent with pyocele; contralateral left epididymal tail appears normal for comparison. No sonographic features of torsion (testicular arterial/venous flow preserved). Management: contact the ordering provider and recommend urologic consultation and antibiotics.",
+  "rubric": [
+    "names acute right epididymitis",
+    "describes right epididymal enlargement",
+    "mentions heterogeneous echotexture of the right epididymis",
+    "demonstrates hyperemia on color Doppler in the right epididymis",
+    "identifies a complex or multiseptated peritesticular fluid collection consistent with pyocele",
+    "compares with the normal left epididymal tail for side-to-side comparison",
+    "addresses torsion as unlikely given preserved or increased intratesticular flow",
+    "recommends contacting the ordering provider and urologic consultation with antibiotics"
+  ],
+  "differential": {
+    "items": [
+      { "label": "Epididymo-orchitis" },
+      { "label": "Testicular torsion" },
+      { "label": "Torsion of testicular appendage" },
+      { "label": "Epididymal or scrotal abscess" },
+      { "label": "Complex hydrocele / hematoceles" }
+    ],
+    "min_required": 1
+  }
 }
 
 ]
