@@ -16,6 +16,8 @@ const vTranscript = document.getElementById('vTranscript');
 const vFeedback   = document.getElementById('vFeedback');
 const vScore      = document.getElementById('vScore');
 const vLLM        = document.getElementById('vLLM');
+const FIT_PADDING = 0.95;   // 1.00 = exact fit; lower = zoom out a bit
+const Y_NUDGE_PX  = 24;     // positive moves initial view DOWN (px)
 
 // ----- canvas for still images -----
 const canvas = document.getElementById('canvas');
@@ -321,6 +323,15 @@ async function loadAsset(){
   img = null; rawImg = null;
   try {
     rawImg = await loadImg(a.src);
+    // Fit-to-view and nudge down a little
+    const vw = canvas.clientWidth  || canvas.width  || 1;
+    const vh = canvas.clientHeight || canvas.height || 1;
+    const iw = rawImg.naturalWidth || rawImg.width  || 1;
+    const ih = rawImg.naturalHeight|| rawImg.height || 1;
+
+    scale = Math.min(vw / iw, vh / ih) * FIT_PADDING; // initial zoom
+    panX = 0;
+    panY = Y_NUDGE_PX;                                 // initial vertical shift
     img = await toProcessed(rawImg, bright, cont);
     draw();
   } catch(e) {
