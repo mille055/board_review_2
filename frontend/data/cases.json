@@ -25,7 +25,10 @@
     "title": "Case 2",
     "subspecialty": "Thoracic Radiology",
     "tags": ["ctpa", "chest pain"],
-    "images": ["data/images/thorax_ctpa_1.png"],
+    "media": [
+      { "type": "video", "src": "data/images/samplemovie.mp4", "caption": "Abdominal CT" },
+      { "type": "image", "src": "data/images/gi_appendix_1.png", "caption": "Appendix" }
+    ],
     "boardPrompt": "A 62-year-old with acute pleuritic chest pain and tachycardia underwent CTPA. Please interpret the exam, state the diagnosis, comment on severity, and suggest next steps.",
     "expectedAnswer": "Diagnosis: Segmental PE in RLL. Key: filling defects, clot burden, RV/LV ratio, ancillary infarcts/effusions. Management: anticoagulation if not contraindicated; risk stratification.",
     "rubric": [
