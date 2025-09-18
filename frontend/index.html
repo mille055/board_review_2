@@ -15,6 +15,14 @@
         <h1>Oral Boards Trainer</h1>
       </div>
 
+      <!-- NEW: Mode toggle -->
+      <div class="section">
+        <label class="mode-toggle" style="display:flex;align-items:center;gap:.5rem;">
+          <input id="modeToggle" type="checkbox" />
+          <span>Multiple Choice</span>
+        </label>
+      </div>
+
       <div class="section">
         <div class="label">Subspecialties</div>
         <div style="display:flex; gap:8px; margin-bottom:8px">
@@ -68,8 +76,16 @@
           <div id="vThumbs" class="viewer-thumbs"></div>
         </div>
 
+        <!-- inside <aside class="viewer-sidebar">, below #vMeta
         <div class="section">
-          <div class="label">Boards Prompt (read to trainee)</div>
+          <label class="mode-toggle" style="display:flex;align-items:center;gap:.5rem;">
+            <input id="modeToggleViewer" type="checkbox" />
+            <span>Multiple Choice</span>
+          </label>
+        </div> -->
+
+        <div class="section">
+          <div class="label">Boards Prompt (Clinical History)</div>
           <div id="vBoardPrompt" class="box small" style="white-space:pre-wrap"></div>
         </div>
 
@@ -78,34 +94,40 @@
           <div id="vAnswer" class="small box" style="white-space:pre-wrap"></div>
         </div>
 
-        <div class="section">
-          <div class="label">Transcript (demo)</div>
-          <div id="vTranscript" class="small box" style="white-space:pre-wrap; min-height:80px"></div>
-          <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
-            <button class="btn" id="vMicBtn" title="Demo transcript via Web Speech API">🎤 Start Demo Transcribe</button>
-            <button class="btn ghost" id="vPasteBtn">Paste/Edit Transcript</button>
-            <button class="btn" id="gradeBtn">Grade</button>
+        <!-- NEW: ORAL mode pane (existing UI wrapped here) -->
+        <div id="oralPane">
+          <div class="section">
+            <div class="label">Transcript (demo)</div>
+            <div id="vTranscript" class="small box" style="white-space:pre-wrap; min-height:80px"></div>
+            <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
+              <button class="btn" id="vMicBtn" title="Demo transcript via Web Speech API">🎤 Start Demo Transcribe</button>
+              <button class="btn ghost" id="vPasteBtn">Paste/Edit Transcript</button>
+              <button class="btn" id="gradeBtn">Grade</button>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="label">Rubric (critical points)</div>
+            <div id="vRubric" class="small box"></div>
+          </div>
+
+          <div class="section">
+            <div class="label">Feedback</div>
+            <div id="vFeedback" class="small box mono" style="white-space:pre-wrap; min-height:80px"></div>
+            <div class="score">
+              <div class="small">Similarity • Rubric • Overall</div>
+              <div id="vScore" class="pill">–</div>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="label">LLM Payload (preview)</div>
+            <div id="vLLM" class="small box mono" style="max-height:200px; overflow:auto"></div>
           </div>
         </div>
 
-        <div class="section">
-          <div class="label">Rubric (critical points)</div>
-          <div id="vRubric" class="small box"></div>
-        </div>
-
-        <div class="section">
-          <div class="label">Feedback</div>
-          <div id="vFeedback" class="small box mono" style="white-space:pre-wrap; min-height:80px"></div>
-          <div class="score">
-            <div class="small">Similarity • Rubric • Overall</div>
-            <div id="vScore" class="pill">–</div>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="label">LLM Payload (preview)</div>
-          <div id="vLLM" class="small box mono" style="max-height:200px; overflow:auto"></div>
-        </div>
+        <!-- NEW: MCQ mode pane (populated by ui.js) -->
+        <div id="mcqPane" style="display:none"></div>
 
         <button class="btn ghost" id="closeViewer" style="margin-top:8px">Close</button>
       </aside>

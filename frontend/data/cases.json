@@ -123,7 +123,48 @@
       { "label": "Complex hydrocele / hematoceles" }
     ],
     "min_required": 1
+  }, 
+  "mcqs": {
+    "shuffle_questions": false,
+    "questions": [
+      {
+        "id": "q1",
+        "stem": "Which is the most likely diagnosis given the provided images and Doppler cine?",
+        "choices": [
+          { "id": "a", "text": "Right testicular torsion" },
+          { "id": "b", "text": "Right epididymitis with possible pyocele", "correct": true, "explain": "Hyperemic, enlarged heterogeneous epididymis + multiseptated peritesticular collection → pyocele." },
+          { "id": "c", "text": "Epididymal appendix torsion" },
+          { "id": "d", "text": "Simple hydrocele" }
+        ],
+        "multi_select": false,
+        "shuffle_choices": true,
+        "concept_ids": ["dx.epididymitis", "finding.hyperemia", "finding.multiseptated_fluid"]
+      },
+      {
+        "id": "q2",
+        "stem": "Which management is most appropriate?",
+        "choices": [
+          { "id": "a", "text": "Immediate manual detorsion" },
+          { "id": "b", "text": "Urologic consultation and antibiotics", "correct": true, "explain": "Infection pattern (not torsion). Antibiotics + urology; drainage if abscess/pyocele." },
+          { "id": "c", "text": "No treatment; observe" },
+          { "id": "d", "text": "Emergent orchiectomy" }
+        ],
+        "multi_select": false,
+        "shuffle_choices": false
+      },
+      {
+        "id": "q3",
+        "stem": "Which findings support pyocele? (Select all that apply.)",
+        "choices": [
+          { "id": "a", "text": "Multiseptated peritesticular collection", "correct": true, "explain": "Complex, septated fluid favors pyocele over simple hydrocele." },
+          { "id": "b", "text": "Marked epididymal hyperemia", "correct": true, "explain": "Supports infection—in context raises concern for complicated infection." },
+          { "id": "c", "text": "Uniform anechoic hydrocele" },
+          { "id": "d", "text": "Absent intratesticular arterial flow" }
+        ],
+        "multi_select": true,
+        "shuffle_choices": true
+      }
+    ]
   }
 }
-
 ]

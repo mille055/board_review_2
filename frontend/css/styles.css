@@ -62,3 +62,13 @@ canvas{position:absolute; inset:0; width:100%; height:100%}
 .mono{font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
 .box{background:#0f1013;border:1px solid #2a2c33;border-radius:8px;padding:8px}
 .score{display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center}
+.mcq-card{padding:12px;border:1px solid #333;border-radius:8px;margin-bottom:12px}
+.mcq-stem{margin-bottom:8px;font-weight:600}
+.mcq-choice{display:flex;gap:.5rem;align-items:flex-start;padding:6px;border-radius:6px}
+.mcq-choice.mcq-correct{background:#103d22}
+.mcq-choice.mcq-wrong{background:#3d1010}
+.mcq-choice.mcq-missed{outline:1px dashed #2aa}
+.mcq-actions{display:flex;gap:8px;margin-top:8px}
+.mcq-explain.hidden{display:none}
+.mcq-expl-title{font-weight:600;margin:6px 0}
+.mcq-score{margin-top:8px;font-weight:600}
