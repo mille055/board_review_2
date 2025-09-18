@@ -88,7 +88,78 @@
       { "label": "Sarcoidosis" }
     ],
     "min_required": 2
-  }
+  },
+    "mcqs": {
+      "shuffle_questions": false,
+      "questions": [
+        {
+          "id": "mn-q1",
+          "stem": "Which sonographic finding is most characteristic of medullary nephrocalcinosis?",
+          "choices": [
+            { "id": "a", "text": "Echogenic medullary pyramids with or without posterior acoustic shadowing", "correct": true, "explain": "Calcifications deposit in the renal medulla/pyramids, producing echogenic pyramids; shadowing may or may not be present depending on burden and equipment." },
+            { "id": "b", "text": "Diffuse increased cortical echogenicity", "correct": false, "explain": "This pattern is more typical of medical renal disease/CKD affecting the cortex, not medullary calcification." },
+            { "id": "c", "text": "Marked hydronephrosis", "correct": false, "explain": "Hydronephrosis reflects collecting system dilation/obstruction, not medullary calcium deposition." },
+            { "id": "d", "text": "Subcapsular (cortical) calcifications", "correct": false, "explain": "Cortical calcifications point away from medullary nephrocalcinosis." }
+          ],
+          "multi_select": false,
+          "shuffle_choices": true,
+          "concept_ids": ["dx.nephrocalcinosis", "finding.echogenic_pyramids"]
+        },
+        {
+          "id": "mn-q2",
+          "stem": "Which underlying conditions are classically associated with medullary nephrocalcinosis? (Select all that apply.)",
+          "choices": [
+            { "id": "a", "text": "Primary hyperparathyroidism", "correct": true, "explain": "Hypercalcemia/hypercalciuria promote medullary calcium deposition." },
+            { "id": "b", "text": "Distal renal tubular acidosis", "correct": true, "explain": "Distal RTA causes alkaline urine and hypocitraturia, favoring calcium precipitation in the medulla." },
+            { "id": "c", "text": "Medullary sponge kidney", "correct": true, "explain": "Ectatic collecting ducts predispose to stasis and calcification within the pyramids." },
+            { "id": "d", "text": "Alport syndrome", "correct": false, "explain": "Alport syndrome can cause cortical, not medullary, nephrocalcinosis." },
+            { "id": "e", "text": "Minimal change disease", "correct": false, "explain": "Glomerular diseases like MCD are not typical causes of medullary calcification." }
+          ],
+          "multi_select": true,
+          "shuffle_choices": true,
+          "concept_ids": ["etiology.hyperparathyroidism", "etiology.distal_rta", "etiology.msk_medullary_sponge"]
+        },
+        {
+          "id": "mn-q3",
+          "stem": "Which feature favors medullary nephrocalcinosis over isolated nephrolithiasis on ultrasound?",
+          "choices": [
+            { "id": "a", "text": "Multiple pyramids bilaterally show linear/bandlike increased echogenicity", "correct": true, "explain": "Nephrocalcinosis affects many pyramids, often bilaterally; stones are discrete foci." },
+            { "id": "b", "text": "A single discrete echogenic focus with clean acoustic shadowing in the ureter", "correct": false, "explain": "This describes a ureteral stone rather than diffuse medullary calcification." },
+            { "id": "c", "text": "Focal mural echogenicity of the bladder", "correct": false, "explain": "Unrelated to medullary calcification." },
+            { "id": "d", "text": "Absence of twinkle artifact on color Doppler", "correct": false, "explain": "Twinkle artifact commonly occurs behind calcifications in both stones and nephrocalcinosis." }
+          ],
+          "multi_select": false,
+          "shuffle_choices": true,
+          "concept_ids": ["finding.pattern_diffuse_vs_discrete", "artifact.twinkle"]
+        },
+        {
+          "id": "mn-q4",
+          "stem": "On color Doppler, which artifact is most commonly seen posterior to calcified foci?",
+          "choices": [
+            { "id": "a", "text": "Twinkle artifact", "correct": true, "explain": "Twinkle artifact is typical behind strongly reflecting calcified interfaces." },
+            { "id": "b", "text": "Mirror-image artifact", "correct": false, "explain": "Mirror artifact relates to strong specular reflectors like the diaphragm, not calcifications per se." },
+            { "id": "c", "text": "Comet-tail artifact", "correct": false, "explain": "A short reverberation artifact; classic for adenomyomatosis of the gallbladder, not renal medullary calcifications." },
+            { "id": "d", "text": "Refraction (edge) artifact", "correct": false, "explain": "Occurs at the margins of curved structures; not the hallmark finding here." }
+          ],
+          "multi_select": false,
+          "shuffle_choices": true,
+          "concept_ids": ["artifact.twinkle"]
+        },
+        {
+          "id": "mn-q5",
+          "stem": "A 35-year-old with ultrasound showing echogenic medullary pyramids and cortical sparing is otherwise stable. What is the most appropriate next step?",
+          "choices": [
+            { "id": "a", "text": "Immediate ureteroscopic lithotripsy", "correct": false, "explain": "Intervention is for obstructing stones, not diffuse medullary calcification." },
+            { "id": "b", "text": "No further workup is necessary", "correct": false, "explain": "Nephrocalcinosis warrants evaluation for a metabolic/structural cause." },
+            { "id": "c", "text": "Nephrology referral and targeted metabolic evaluation", "correct": true, "explain": "Management is directed at the underlying disorder (e.g., hyperparathyroidism, distal RTA)." },
+            { "id": "d", "text": "Empiric corticosteroids", "correct": false, "explain": "No role in medullary nephrocalcinosis without an immune/inflammatory indication." }
+          ],
+          "multi_select": false,
+          "shuffle_choices": true,
+          "concept_ids": ["plan.nephrology_referral", "plan.metabolic_workup"]
+        }
+      ]
+    }
 },
 {
   "id": "us-002",
