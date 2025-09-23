@@ -356,14 +356,40 @@ canvas.addEventListener('dblclick', ()=>{
   resetView(); loadAsset();
 });
 
-// keyboard + nav
-document.addEventListener('keydown', (e)=>{
-  if(!viewer.classList.contains('show')) return;
-  if(e.key==='ArrowRight') nextImage();
-  if(e.key==='ArrowLeft') prevImage();
-  if(e.key===' ') e.preventDefault();
-});
+// // keyboard + nav
+// // helper: let typable elements handle their own keys
+function isTypingTarget(e) {
+  const isType = el => !!el && (
+    el.tagName === 'INPUT' ||
+    el.tagName === 'TEXTAREA' ||
+    el.isContentEditable === true
+  );
+  // Some browsers deliver keydown with target=document while an input is focused.
+  return isType(e.target) || isType(document.activeElement);
+}
 
+// keyboard + nav (don’t eat Space when typing)
+
+// Global keyboard nav for viewer (safe around text inputs and LLM panel)
+document.addEventListener('keydown', (e) => {
+  if (!viewer.classList.contains('show')) return;
+
+  // 1) If user is typing in a field, ignore
+  if (isTypingTarget(e)) return;
+
+  // 2) If the event originated anywhere inside the LLM chat panel, ignore
+  const llmPanel = document.getElementById('llmPanel');
+  if (llmPanel) {
+    const active = document.activeElement;
+    if (llmPanel.contains(e.target) || llmPanel.contains(active)) return;
+  }
+
+  if (e.key === 'ArrowRight') nextImage();
+  if (e.key === 'ArrowLeft')  prevImage();
+
+  // Block page scroll via Space only when not typing
+  if (e.code === 'Space' || e.key === ' ') e.preventDefault();
+});
 // buttons + sliders
 document.getElementById('closeViewer').onclick = closeViewer;
 document.getElementById('nextImg').onclick = nextImage;

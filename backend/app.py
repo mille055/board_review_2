@@ -1,7 +1,7 @@
 # app.py
 import os, time, json, re
 from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 
 from fastapi import FastAPI, HTTPException, Depends, Query, Request, Header
 from fastapi.security import OAuth2PasswordRequestForm
@@ -165,6 +165,30 @@ class FeedbackOut(BaseModel):
     feedback: str
     score: Dict[str, Any] = {}
 
+# ---- MCQ Chat models ----
+class ChatTurn(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = ""
+
+class MCQChatRequest(BaseModel):
+    # All optional for robustness (prevents 422)
+    mode: Optional[str] = "mcq_chat"
+    caseId: Optional[str] = None
+    title: Optional[str] = None
+    subspecialty: Optional[str] = None
+    boardPrompt: Optional[str] = None
+    expectedAnswer: Optional[str] = None
+
+    question: Optional[str] = None
+    choices: List[str] = []
+    selected: List[str] = []
+
+    # rolling chat history
+    messages: List[ChatTurn] = []
+
+class MCQChatResponse(BaseModel):
+    reply: str
+
 class AttemptIn(BaseModel):
     caseId: str
     subspecialty: str
@@ -238,6 +262,67 @@ def _write_cases_file(items: List[Dict[str, Any]]):
     os.makedirs(os.path.dirname(CASES_PATH), exist_ok=True)
     with open(CASES_PATH, "w") as f:
         json.dump(items, f, indent=2)
+
+def _split_expected_answer(expected: Optional[str]) -> Dict[str, str]:
+    """Parse 'Diagnosis: ... Key: ... Differential: ... Management: ...' into a dict."""
+    if not expected:
+        return {}
+    blocks: Dict[str, str] = {}
+    for key in ("Diagnosis", "Key", "Differential", "Management"):
+        m = re.search(
+            rf"{key}\s*:\s*(.+?)(?=(Diagnosis|Key|Differential|Management)\s*:|$)",
+            expected, re.IGNORECASE | re.DOTALL
+        )
+        if m:
+            blocks[key.lower()] = m.group(1).strip()
+    return blocks
+
+def _guess_relevant_choices(choices: List[str], expected: Optional[str]) -> List[str]:
+    if not choices or not expected:
+        return []
+    blocks = _split_expected_answer(expected)
+    needle = " ".join([blocks.get("diagnosis", ""), blocks.get("key", "")]).lower()
+    words = {w for w in re.findall(r"[a-z0-9]+", needle) if len(w) >= 5}
+    scored = []
+    for ch in choices:
+        cw = set(re.findall(r"[a-z0-9]+", ch.lower()))
+        overlap = len(cw & words)
+        scored.append((overlap, ch))
+    scored.sort(reverse=True)
+    return [c for s, c in scored if s > 0][:2]
+
+def _build_coach_reply(req: "MCQChatRequest") -> str:
+    blocks = _split_expected_answer(req.expectedAnswer)
+    diag  = blocks.get("diagnosis")
+    keys  = blocks.get("key")
+    mgmt  = blocks.get("management")
+    diff  = blocks.get("differential")
+
+    lines: List[str] = []
+    if req.question:
+        lines.append(f"**Question focus:** {req.question}")
+    if req.boardPrompt:
+        lines.append(f"**Clinical context:** {req.boardPrompt}")
+    if keys:
+        lines.append(f"**Key imaging cues:** {keys}")
+    if diag:
+        lines.append(f"**Likely diagnosis:** {diag}")
+    if diff:
+        lines.append(f"**Close differential:** {diff}")
+
+    if req.choices:
+        best = _guess_relevant_choices(req.choices, req.expectedAnswer)
+        if best:
+            lines.append(f"**Choices that fit the pattern:** {', '.join(best)}")
+    if req.selected:
+        lines.append(f"**Your selection:** {', '.join(req.selected)}")
+        if mgmt:
+            lines.append(f"**Management considerations:** {mgmt}")
+
+    # gentle prompt to keep the chat going
+    if not req.messages or (req.messages and req.messages[-1].role != "user"):
+        lines.append("What would you like to explore—diagnostic criteria, differentials, or management?")
+    return "\n".join(lines)
 
 # -----------------------------
 # Routes
@@ -326,6 +411,58 @@ async def delete_case(case_id: str, identity: str = Depends(current_identity)):
         return {"ok": True}
 
 # Feedback (LLM)
+@app.post("/api/mcq/chat", response_model=MCQChatResponse)
+async def mcq_chat(body: MCQChatRequest, identity: str = Depends(current_identity)):
+    """
+    Conversational endpoint about the current MCQ. 
+    Works without OpenAI (deterministic coach), 
+    and uses your OpenAI client automatically if OPENAI_API_KEY is set.
+    """
+    system = (
+        "You are an expert radiology boards coach. "
+        "Use the case context and question to provide concise, high-yield teaching. "
+        "Contrast the best answer with top distractors when useful."
+    )
+
+    # If you have OPENAI_API_KEY configured, try the model first
+    if openai_client and os.getenv("OPENAI_API_KEY"):
+        try:
+            msgs = [{"role": "system", "content": system}]
+            # Seed the conversation with compact context (first turn)
+            context_blob = (
+                f"CASE: {body.title or ''} [{body.subspecialty or ''}]\n"
+                f"CONTEXT: {body.boardPrompt or ''}\n"
+                f"EXPECTED: {body.expectedAnswer or ''}\n"
+                f"QUESTION: {body.question or ''}\n"
+                f"CHOICES: {', '.join(body.choices or [])}\n"
+                f"SELECTED: {', '.join(body.selected or [])}\n"
+                "--------"
+            )
+            msgs.append({"role": "user", "content": context_blob})
+
+            # Then any rolling chat history
+            for t in body.messages or []:
+                msgs.append({"role": t.role, "content": t.content or ""})
+
+            # If user hasn't asked anything yet, nudge an initial explanation
+            if not any(t.role == "user" for t in body.messages or []):
+                msgs.append({"role": "user", "content": "Briefly explain the best answer and key pitfalls."})
+
+            resp = openai_client.chat.completions.create(
+                model=OPENAI_MODEL,
+                messages=msgs,
+                temperature=0.2,
+                max_tokens=600,
+            )
+            text = (resp.choices[0].message.content or "").strip()
+            if text:
+                return MCQChatResponse(reply=text)
+        except Exception as e:
+            log.exception("MCQ chat LLM error: %s", e)
+
+    # Fallback: deterministic coach (no external LLM required)
+    return MCQChatResponse(reply=_build_coach_reply(body))
+
 @app.post("/api/feedback", response_model=FeedbackOut)
 async def feedback(body: FeedbackIn, identity: str = Depends(current_identity)):
     log.info("FEEDBACK by %s case=%s transcript_len=%d rubric=%d",

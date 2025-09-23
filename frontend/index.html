@@ -15,7 +15,7 @@
         <h1>Oral Boards Trainer</h1>
       </div>
 
-      <!-- NEW: Mode toggle -->
+      <!-- Mode toggle -->
       <div class="section">
         <label class="mode-toggle" style="display:flex;align-items:center;gap:.5rem;">
           <input id="modeToggle" type="checkbox" />
@@ -46,7 +46,7 @@
       </div>
 
       <div class="section small">
-        <span class="kbd">Space</span> open viewer · <span class="kbd">← / →</span> prev/next image
+        <span class="kbd">← / →</span> prev/next image
       </div>
     </aside>
 
@@ -76,14 +76,7 @@
           <div id="vThumbs" class="viewer-thumbs"></div>
         </div>
 
-        <!-- inside <aside class="viewer-sidebar">, below #vMeta
-        <div class="section">
-          <label class="mode-toggle" style="display:flex;align-items:center;gap:.5rem;">
-            <input id="modeToggleViewer" type="checkbox" />
-            <span>Multiple Choice</span>
-          </label>
-        </div> -->
-
+        <!-- Boards / answer -->
         <div class="section">
           <div class="label">Boards Prompt (Clinical History)</div>
           <div id="vBoardPrompt" class="box small" style="white-space:pre-wrap"></div>
@@ -94,7 +87,7 @@
           <div id="vAnswer" class="small box" style="white-space:pre-wrap"></div>
         </div>
 
-        <!-- NEW: ORAL mode pane (existing UI wrapped here) -->
+        <!-- ORAL mode pane -->
         <div id="oralPane">
           <div class="section">
             <div class="label">Transcript (demo)</div>
@@ -103,6 +96,8 @@
               <button class="btn" id="vMicBtn" title="Demo transcript via Web Speech API">🎤 Start Demo Transcribe</button>
               <button class="btn ghost" id="vPasteBtn">Paste/Edit Transcript</button>
               <button class="btn" id="gradeBtn">Grade</button>
+              <!-- NEW: Ask LLM in oral mode -->
+              <button class="btn ghost" id="llmAskBtnOral">Ask the LLM</button>
             </div>
           </div>
 
@@ -126,8 +121,23 @@
           </div>
         </div>
 
-        <!-- NEW: MCQ mode pane (populated by ui.js) -->
+        <!-- MCQ mode pane (populated by ui.js) -->
         <div id="mcqPane" style="display:none"></div>
+
+        <!-- NEW: In-viewer LLM chat panel -->
+        <div class="section">
+          <div class="label" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span>Ask the LLM</span>
+            <button class="btn ghost" id="llmHide" style="display:none;">Hide</button>
+          </div>
+          <div id="llmPanel" style="display:none">
+            <div id="llmChatLog" class="box small" style="height:220px; overflow:auto;"></div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <input id="llmInput" class="input" placeholder="Type your question (e.g., ‘Why is D wrong?’)" style="flex:1;"/>
+              <button class="btn" id="llmSend">Send</button>
+            </div>
+          </div>
+        </div>
 
         <button class="btn ghost" id="closeViewer" style="margin-top:8px">Close</button>
       </aside>
@@ -158,6 +168,10 @@
       </div>
     </div>
   </div>
+
+  <!-- Markdown libs -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 
   <!-- App boot -->
   <script type="module">

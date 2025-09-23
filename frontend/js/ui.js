@@ -1,221 +1,3 @@
-// import { SUBS, CONFIG } from './config.js';
-// import { getAll, setCases } from './store.js';
-// import { openViewer as openViewerBase } from './viewer.js';
-// import { toggleMic, pasteTranscript, getTranscript } from './speech.js';
-// import { gradeHeuristic, heuristicFeedback, buildLLMPayload, letter } from './grade.js';
-// import { recordAttempt, getStats } from './progress.js';
-
-// const chips = document.getElementById('chips');
-// const grid = document.getElementById('grid');
-// const countEl = document.getElementById('count');
-
-// const vFeedback = document.getElementById('vFeedback');
-// const vScore = document.getElementById('vScore');
-// const vLLM = document.getElementById('vLLM');
-
-// /* ---------- Local filter state ---------- */
-// let activeSubs = new Set();
-// let queryStr = "";
-
-// /* ---------- Helpers ---------- */
-// function haystack(c){
-//   return [
-//     c.title || "",
-//     c.boardPrompt || "",
-//     c.expectedAnswer || "",
-//     (c.tags || []).join(" "),
-//     c.subspecialty || ""
-//   ].join(" ").toLowerCase();
-// }
-
-// function getFiltered(){
-//   const all = getAll();
-//   return all.filter(c=>{
-//     const okSub = activeSubs.size ? activeSubs.has(c.subspecialty) : true;
-//     const okQ   = queryStr ? haystack(c).includes(queryStr) : true;
-//     return okSub && okQ;
-//   });
-// }
-
-// function randomPick(list){
-//   if(!list.length) return null;
-//   return list[Math.floor(Math.random() * list.length)];
-// }
-
-// function updateCounts(){
-//   const total = getAll().length;
-//   const { reviewedCount } = getStats(total);
-//   const list = getFiltered();
-//   countEl.textContent = `${list.length} case${list.length===1?'':'s'} • Reviewed ${reviewedCount}/${total}`;
-// }
-
-// /* ---------- Public init ---------- */
-// export function initUI(){
-//   // Build chips
-//   const chipEls=[];
-//   SUBS.forEach(s=>{
-//     const c = document.createElement('div');
-//     c.className='chip'; c.textContent=s;
-//     c.onclick=()=>{
-//       c.classList.toggle('active');
-//       if(c.classList.contains('active')) activeSubs.add(s); else activeSubs.delete(s);
-//       render();
-//     };
-//     chips.appendChild(c);
-//     chipEls.push({el:c, name:s});
-//   });
-
-//   // All / None
-//   document.getElementById('subsAll').onclick = ()=>{
-//     activeSubs = new Set(SUBS);
-//     chipEls.forEach(x=>x.el.classList.add('active'));
-//     render();
-//   };
-//   document.getElementById('subsNone').onclick = ()=>{
-//     activeSubs.clear();
-//     chipEls.forEach(x=>x.el.classList.remove('active'));
-//     render();
-//   };
-
-//   // Search
-//   document.getElementById('q').addEventListener('input', e=>{
-//     queryStr = (e.target.value || '').trim().toLowerCase();
-//     render();
-//   });
-//   document.getElementById('clear').onclick=()=>{
-//     document.getElementById('q').value='';
-//     queryStr='';
-//     render();
-//   };
-
-//   // Randoms
-//   document.getElementById('randomOne').onclick=()=>{
-//     const c = randomPick(getFiltered());
-//     if(!c) return alert('No cases loaded. Use "Load Samples" or "Import JSON".');
-//     window.openViewer(c);
-//   };
-//   document.getElementById('randomSet').onclick=()=>{
-//     const list = getFiltered();
-//     if(!list.length) return alert('No cases loaded. Use "Load Samples" or "Import JSON".');
-//     const n = Math.min(5, list.length);
-//     alert("Random set:\n\n" + shuffle([...list]).slice(0,n).map(c=>`• ${c.title} — ${c.subspecialty}`).join('\n'));
-//   };
-
-//   // Import / Load samples
-//   document.getElementById('importBtn').onclick=()=>document.getElementById('fileInput').click();
-//   document.getElementById('fileInput').addEventListener('change', async (e)=>{
-//     const file = e.target.files[0]; if(!file) return;
-//     try{
-//       const json = JSON.parse(await file.text());
-//       if(Array.isArray(json)){ setCases(json); render(); alert(`Imported ${json.length} cases ✔`); }
-//       else { alert('JSON must be an array of cases'); }
-//     }catch{ alert('Invalid JSON'); }
-//   });
-
-//   document.getElementById('loadSamples').onclick = ()=>{
-//     fetch('data/cases.json', {cache:'no-store'})
-//       .then(r=>r.json())
-//       .then(arr=>{ setCases(arr); render(); alert(`Loaded ${arr.length} sample cases ✔`); });
-//   };
-
-//   // Viewer actions
-//   document.getElementById('vMicBtn').onclick = toggleMic;
-//   document.getElementById('vPasteBtn').onclick = pasteTranscript;
-
-//   // 🚀 Make this handler async to allow 'await' inside
-//   document.getElementById('gradeBtn').onclick = async ()=>{
-//     const tr = getTranscript();
-//     if(!tr) return alert('No transcript. Use mic or paste text.');
-//     const caseObj = window.__currentCaseForGrading; // set when opening viewer
-//     if(!caseObj) return;
-
-//     const heur = gradeHeuristic({
-//       transcript: tr,
-//       promptTxt: caseObj.boardPrompt || '',
-//       expected:  caseObj.expectedAnswer || '',
-//       rubric:    caseObj.rubric || []
-//     });
-
-//     vFeedback.textContent = heuristicFeedback(heur);
-//     vScore.textContent = `${Math.round(heur.similarity*100)}% • ${heur.rubricHit}/${(caseObj.rubric||[]).length} • ${letter(heur)}`;
-
-//     const payload = buildLLMPayload({caseObj, transcript:tr, heur});
-//     vLLM.textContent = JSON.stringify(payload, null, 2);
-
-//     // Optional LLM call (skipped unless you wire a backend)
-//     if (CONFIG?.FEEDBACK_MODE && CONFIG.FEEDBACK_MODE !== 'heuristic') {
-//       try {
-//         // Only call if gradeWithLLM exists in your grade.js
-//         const mod = await import('./grade.js');
-//         if (typeof mod.gradeWithLLM === 'function' && CONFIG.FEEDBACK_MODE !== 'heuristic') {
-//           const llm = await mod.gradeWithLLM({caseObj, transcript: tr, heur});
-//           if (llm?.feedback) {
-//             vFeedback.textContent += (vFeedback.textContent ? '\n\n— LLM feedback —\n' : '') + llm.feedback;
-//           }
-//         }
-//       } catch (e) {
-//         console.error('[UI] LLM call failed', e);
-//         vFeedback.textContent += `\n\n— LLM error —\n${e.message || e}`;
-//       }
-//     }
-
-//     // Progress tracking
-//     recordAttempt({
-//       caseId: caseObj.id,
-//       subspecialty: caseObj.subspecialty || 'Unknown',
-//       similarity: heur.similarity,
-//       rubricHit: heur.rubricHit,
-//       rubricTotal: (caseObj.rubric || []).length,
-//       letter: letter(heur)
-//     });
-//     updateCounts();
-//   };
-
-//   // Bridge to viewer (viewer handles clearing transcript/feedback on open)
-//   window.openViewer = (c)=>{ window.__currentCaseForGrading = c; openViewerBase(c); };
-
-//   render(); // initial
-// }
-
-// /* ---------- Render grid ---------- */
-// function render(){
-//   updateCounts();
-
-//   const list = getFiltered();
-//   grid.innerHTML = list.length ? '' : `<div class="small">No cases match your filters. Load samples or import your JSON.</div>`;
-
-//   list.forEach(c=>{
-//     const card = document.createElement('div'); card.className='card';
-
-//     const th = document.createElement('div'); th.className='thumb';
-//     const img = document.createElement('img'); img.loading='lazy'; img.src = c.images?.[0] || ''; th.appendChild(img);
-
-//     const title = document.createElement('div'); title.textContent = c.title;
-
-//     const meta = document.createElement('div'); meta.className='meta';
-//     const sub = document.createElement('span'); sub.className='pill'; sub.textContent = c.subspecialty;
-
-//     const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='8px';
-//     const choose = document.createElement('button'); choose.className='btn ghost'; choose.textContent='Choose';
-//     choose.onclick=()=>window.openViewer(c);
-//     const random = document.createElement('button'); random.className='btn'; random.textContent='Random similar';
-//     random.onclick=()=> {
-//       const pool = getAll().filter(x=>x.subspecialty===c.subspecialty);
-//       window.openViewer(randomPick(pool) || c);
-//     };
-
-//     actions.appendChild(choose); actions.appendChild(random);
-//     meta.appendChild(sub); meta.appendChild(actions);
-
-//     card.appendChild(th);
-//     card.appendChild(title);
-//     card.appendChild(meta);
-//     grid.appendChild(card);
-//   });
-// }
-
-// /* ---------- Utils ---------- */
-// function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 import { SUBS, CONFIG } from './config.js';
 import { getAll, setCases } from './store.js';
 import { openViewer as openViewerBase } from './viewer.js';
@@ -223,40 +5,36 @@ import { toggleMic, pasteTranscript, getTranscript } from './speech.js';
 import { gradeHeuristic, heuristicFeedback, buildLLMPayload, letter } from './grade.js';
 import { recordAttempt, getStats } from './progress.js';
 
-const chips = document.getElementById('chips');
-const grid = document.getElementById('grid');
+const chips   = document.getElementById('chips');
+const grid    = document.getElementById('grid');
 const countEl = document.getElementById('count');
 
 const vFeedback = document.getElementById('vFeedback');
-const vScore = document.getElementById('vScore');
-const vLLM = document.getElementById('vLLM');
+const vScore    = document.getElementById('vScore');
+const vLLM      = document.getElementById('vLLM');
 
 // ===== Mode (oral | mcq) =====
 let mode = (localStorage.getItem('mode') || 'oral'); // 'oral' default
 
 /* ---------- Local filter state ---------- */
 let activeSubs = new Set();
-let queryStr = "";
+let queryStr   = "";
 
 /* ---------- Helpers ---------- */
 function setToggleChecked(on){
   const a = document.getElementById('modeToggle');
-  const b = document.getElementById('modeToggleViewer');
   if (a) a.checked = !!on;
-  if (b) b.checked = !!on;
 }
 
-function enableViewerToggleForCase(caseObj){
-  const t = document.getElementById('modeToggleViewer');
-  if (!t) return;
-  const hasMCQ = !!(caseObj?.mcqs?.questions?.length);
-  t.disabled = !hasMCQ;
-  const label = t.closest('label');
-  if (label) {
-    // choose one: dim or hide when no MCQs
-    label.style.opacity = hasMCQ ? '1' : '0.5';
-    // label.style.display = hasMCQ ? '' : 'none';
+// Pick a thumbnail: prefer media image/poster, else first images[] item
+function getThumbSrc(c){
+  if (Array.isArray(c.media) && c.media.length){
+    for (const m of c.media){
+      if (m.type === 'image' && m.src) return m.src;
+      if (m.poster) return m.poster;
+    }
   }
+  return (c.images && c.images[0]) || '';
 }
 
 function haystack(c){
@@ -290,17 +68,6 @@ function updateCounts(){
   countEl.textContent = `${list.length} case${list.length===1?'':'s'} • Reviewed ${reviewedCount}/${total}`;
 }
 
-// Pick a thumbnail: prefer media image/poster, else first images[] item
-function getThumbSrc(c){
-  if (Array.isArray(c.media) && c.media.length){
-    for (const m of c.media){
-      if (m.type === 'image' && m.src) return m.src;
-      if (m.poster) return m.poster;
-    }
-  }
-  return (c.images && c.images[0]) || '';
-}
-
 /* ---------- Mode UI ---------- */
 function renderMode(){
   const oralPane = document.getElementById('oralPane');
@@ -310,34 +77,37 @@ function renderMode(){
 }
 
 function bindModeToggle(){
-  const ids = ['modeToggle', 'modeToggleViewer'];
-
-  function onFlip(checked){
+  const el = document.getElementById('modeToggle');
+  if (!el) return;
+  el.checked = (mode === 'mcq');
+  const onFlip = (checked)=>{
     mode = checked ? 'mcq' : 'oral';
     localStorage.setItem('mode', mode);
-    // keep both toggles in sync
     setToggleChecked(mode === 'mcq');
-    // show the right pane
     renderMode();
-
-    // force (re)render for the currently open case, if any
     const c = window.__currentCaseForGrading;
     if (!c) return;
     if (mode === 'mcq') renderMCQs(c); else clearMCQs();
-  }
-
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.checked = (mode === 'mcq');
-
-    // Be defensive: wire both events
-    el.addEventListener('input',  (e)=> onFlip(e.target.checked));
-    el.addEventListener('change', (e)=> onFlip(e.target.checked));
-  });
+  };
+  el.addEventListener('input',  (e)=> onFlip(e.target.checked));
+  el.addEventListener('change', (e)=> onFlip(e.target.checked));
 }
 
-
+/* ---------- Render markdown helpers (safe) ---------- */
+function renderMarkdown(md) {
+  if (window.marked && window.DOMPurify) {
+    return DOMPurify.sanitize(marked.parse(String(md || '')));
+  }
+  const esc = String(md || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return esc.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g, '<em>$1</em>')
+            .replace(/\n/g, '<br>');
+}
+function escapeWithBr(s){
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+    .replace(/\n/g,'<br>');
+}
 
 /* ---------- Public init ---------- */
 export function initUI(){
@@ -427,7 +197,7 @@ export function initUI(){
     });
 
     if (vFeedback) vFeedback.textContent = heuristicFeedback(heur);
-    if (vScore)     vScore.textContent = `${Math.round(heur.similarity*100)}% • ${heur.rubricHit}/${(caseObj.rubric||[]).length} • ${letter(heur)}`;
+    if (vScore)    vScore.textContent = `${Math.round(heur.similarity*100)}% • ${heur.rubricHit}/${(caseObj.rubric||[]).length} • ${letter(heur)}`;
 
     const payload = buildLLMPayload({caseObj, transcript:tr, heur});
     if (vLLM) vLLM.textContent = JSON.stringify(payload, null, 2);
@@ -464,7 +234,6 @@ export function initUI(){
   window.openViewer = (c)=>{
     window.__currentCaseForGrading = c;
     openViewerBase(c);
-    enableViewerToggleForCase(c);
 
     // if user left the app in MCQ mode but this case has no MCQs, fall back to oral
     if (mode === 'mcq' && !(c?.mcqs?.questions?.length)) {
@@ -477,6 +246,14 @@ export function initUI(){
     renderMode();
     if (mode === 'mcq') renderMCQs(c); else clearMCQs();
   };
+
+  // LLM chat in-viewer
+  bindLLMChatUI();
+  document.getElementById('llmAskBtnOral')?.addEventListener('click', ()=>{
+    const c = window.__currentCaseForGrading;
+    if (!c) return alert('Open a case first.');
+    openLLMChat(c, 'oral');
+  });
 
   bindModeToggle();
   renderMode();
@@ -584,8 +361,10 @@ function renderMCQs(caseObj){
   const btn = document.createElement('button'); btn.type = 'submit'; btn.textContent = 'Check answers';
   actions.appendChild(btn);
 
-  const why = document.createElement('button'); why.type = 'button'; why.textContent = 'Ask the LLM';
-  why.addEventListener('click', ()=> explainWithLLM(caseObj));
+  const why = document.createElement('button');
+  why.type = 'button';
+  why.textContent = 'Ask the LLM';
+  why.addEventListener('click', ()=> openLLMChat(caseObj, 'mcq'));
   actions.appendChild(why);
 
   form.appendChild(actions);
@@ -612,7 +391,7 @@ function gradeMCQs(caseObj, form){
     if (allRight) nCorrect++;
 
     card.querySelectorAll('.mcq-choice').forEach(lbl=>{
-      const val = lbl.querySelector('input').value;
+      const val   = lbl.querySelector('input').value;
       const isSel = selected.has(val);
       const isCor = correct.has(val);
       lbl.classList.toggle('mcq-correct',  isSel && isCor);
@@ -640,93 +419,191 @@ function gradeMCQs(caseObj, form){
   scoreLine.textContent = `Score: ${nCorrect} / ${cards.length}`;
 }
 
-async function explainWithLLM(caseObj){
+/* ---------- LLM Chat (in-viewer panel) ---------- */
+const chatDOM = {
+  panel:   document.getElementById('llmPanel'),
+  log:     document.getElementById('llmChatLog'),
+  input:   document.getElementById('llmInput'),
+  sendBtn: document.getElementById('llmSend'),
+  hideBtn: document.getElementById('llmHide'),
+};
+
+let chatState = {
+  kind: 'mcq',         // 'mcq' | 'oral'
+  caseObj: null,
+  qIndex: null,        // for MCQ
+  messages: []         // {role:'system'|'user'|'assistant', content}
+};
+
+function bindLLMChatUI(){
+  if (!chatDOM.panel) return;
+  chatDOM.hideBtn?.addEventListener('click', ()=> {
+    chatDOM.panel.style.display = 'none';
+    chatDOM.hideBtn.style.display = 'none';
+  });
+  chatDOM.sendBtn?.addEventListener('click', onLLMSend);
+  chatDOM.input?.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (
+      k === ' ' || e.code === 'Space' || k === 'Spacebar' ||        // Space
+      k === 'ArrowLeft' || k === 'ArrowRight' ||                    // Arrows
+      k === 'PageUp' || k === 'PageDown' || k === 'Home' || k === 'End'
+    ) {
+      // DO NOT preventDefault — we want spaces/caret moves in the field.
+      e.stopPropagation();  // just keep it from reaching global handlers
+    }
+  }, { capture: true });
+
+
+  // Shield typing from global hotkeys: allow default in the input,
+  // but stop the event from reaching document/window handlers.
+  chatDOM.input?.addEventListener('keydown', (e) => {
+    const k = e.key;
+    if (
+      k === ' ' || e.code === 'Space' || k === 'Spacebar' ||
+      k === 'ArrowLeft' || k === 'ArrowRight' ||
+      k === 'PageUp' || k === 'PageDown' || k === 'Home' || k === 'End'
+    ) {
+      // Do NOT preventDefault here—we want the character/caret to update.
+      e.stopPropagation();
+    }
+  }, { capture: true });
+}
+
+function scrollChatToBottom(){
+  if (chatDOM.log) chatDOM.log.scrollTop = chatDOM.log.scrollHeight;
+}
+
+function renderChat(){
+  if (!chatDOM.log) return;
+  chatDOM.log.innerHTML = chatState.messages
+    .filter(m => m.role !== 'system')
+    .map(m => m.role === 'assistant'
+      ? `<div class="chat-assistant"><strong>Assistant:</strong> ${renderMarkdown(m.content)}</div>`
+      : `<div class="chat-user"><strong>You:</strong> ${escapeWithBr(m.content)}</div>`
+    ).join('');
+  scrollChatToBottom();
+}
+
+/* Context helpers */
+function getCurrentMCQContext(){
   const pane = document.getElementById('mcqPane');
   const form = pane?.querySelector('#mcqForm');
-  if (!form) return;
-
+  if (!form) return { idx: 0, selectedText: [] };
   const cards = [...form.querySelectorAll('.mcq-card')];
   const idx = Math.max(0, cards.findIndex(c => c.querySelector('input:checked')));
-  const q = caseObj.mcqs?.questions?.[idx];
-  if (!q) return alert('No question found to explain.');
-
-  const card = cards[idx];
-  const explBox = card.querySelector('.mcq-explain');
-
-  // helper to render HTML into the explanation box
-  function renderExplanation(title, html){
-    explBox.innerHTML = `<div class="mcq-expl-title">${title}</div><div>${html}</div>`;
-    explBox.classList.remove('hidden');
-  }
-
-  // --- Try backend first (only if configured) ---
-  if (CONFIG?.FEEDBACK_API) {
-    try {
-      const selectedText = [...card.querySelectorAll('input:checked')].map(inp => {
+  const selectedText = idx >= 0
+    ? [...cards[idx].querySelectorAll('input:checked')].map(inp => {
         const lbl = inp.closest('label'); return lbl ? lbl.textContent.trim() : inp.value;
-      });
+      })
+    : [];
+  return { idx: Math.max(0, idx), selectedText };
+}
+function getOralContext(){
+  const tr = (typeof getTranscript === 'function') ? (getTranscript() || '').trim() : '';
+  return { transcript: tr };
+}
 
-      const payload = {
-        caseId: caseObj.id,
-        title: caseObj.title,
-        subspecialty: caseObj.subspecialty,
-        boardPrompt: caseObj.boardPrompt,
-        expectedAnswer: caseObj.expectedAnswer,
-        mode: "mcq_explain",
-        question: q.stem,
-        choices: q.choices.map(c=>c.text),
-        selected: selectedText,
-        instruction: `
-You are an expert radiology boards coach.
-Explain the correct answer(s) to the multiple-choice question for this case,
-and briefly state why the other options are less appropriate.
-Keep it concise (5–8 sentences total).`
-      };
+/* Open chat from either mode */
+export function openLLMChat(caseObj, kind='mcq'){
+  if (!chatDOM.panel) return;
 
-      const res = await fetch(CONFIG.FEEDBACK_API, {
-        method: 'POST',
-        headers: {
-          'Content-Type':'application/json',
-          ...(CONFIG.API_KEY ? {'x-api-key': CONFIG.API_KEY} : {})
-        },
-        body: JSON.stringify(payload)
-      });
+  const spec = caseObj?.mcqs;
 
-      if (res.ok) {
-        const data = await res.json().catch(()=> ({}));
-        const textRaw = (data && (data.feedback || data.explanation)) || '';
-        if (textRaw && textRaw.trim()) {
-          renderExplanation('LLM Explanation', textRaw.trim().replace(/\n/g,'<br>'));
-          return; // we got a real explanation; stop here
-        }
-      }
-      // if HTTP not ok or no text -> fall through to local
-    } catch (e) {
-      console.warn('[UI] LLM explain failed; using local fallback', e);
-    }
-  }
+  chatState.kind    = kind;
+  chatState.caseObj = caseObj;
 
-  // --- Local fallback ---
-  const correct = new Set(q.choices.filter(c=>c.correct).map(c=>c.id));
-  const picked  = new Set([...card.querySelectorAll('input:checked')].map(i=>i.value));
+  const lines = [`Case: ${caseObj.title || caseObj.id || ''}`];
+  if (caseObj.boardPrompt) lines.push(`Clinical: ${caseObj.boardPrompt}`);
 
-  const lines = [];
-  const correctText = q.choices.filter(c=>correct.has(c.id)).map(c=>c.text).join(', ') || '—';
-  lines.push(`<strong>Correct:</strong> ${correctText}`);
-
-  const explainBits = q.choices
-    .filter(c => correct.has(c.id) || picked.has(c.id))
-    .filter(c => c.explain)
-    .map(c => `• ${c.text}: ${c.explain}`);
-
-  if (explainBits.length) {
-    lines.push('<div style="margin-top:6px"><strong>Why:</strong></div>');
-    lines.push(explainBits.join('<br>'));
+  if (kind === 'mcq' && spec?.questions?.length){
+    const { idx, selectedText } = getCurrentMCQContext();
+    chatState.qIndex = idx;
+    const q = spec.questions[idx];
+    if (q?.stem) lines.push(`Question: ${q.stem}`);
+    if (q?.choices) lines.push(`Choices: ${q.choices.map(c=>c.text).join(' | ')}`);
+    if (selectedText.length) lines.push(`Selected: ${selectedText.join(', ')}`);
   } else {
-    lines.push('<em>No per-choice explanations provided in case data.</em>');
+    chatState.qIndex = null;
+    const { transcript } = getOralContext();
+    if (transcript) lines.push(`Transcript:\n${transcript}`);
   }
 
-  renderExplanation('Explanation', lines.join('<br>'));
+  chatState.messages = [
+    { role:'system', content: `You are an expert radiology boards coach. Be concise (4–7 sentences). Use imaging reasoning and contrast close distractors.`},
+    { role:'user',   content: `Context for discussion:\n${lines.join('\n')}` },
+    { role:'assistant', content: `Got it. What would you like to know about this ${kind === 'mcq' ? 'question' : 'case'}?` }
+  ];
+
+  renderChat();
+  chatDOM.panel.style.display = 'block';
+  chatDOM.hideBtn.style.display = 'inline-block';
+  chatDOM.input?.focus();
+}
+
+async function onLLMSend(){
+  const msg = (chatDOM.input?.value || '').trim();
+  if (!msg) return;
+
+  chatState.messages.push({ role: 'user', content: msg });
+  chatDOM.input.value = '';
+  renderChat();
+
+  // temporary typing bubble
+  chatState.messages.push({ role: 'assistant', content: '…' });
+  renderChat();
+
+  try {
+    const reply = await callLLMChatAPI(chatState);
+    chatState.messages.splice(-1, 1, { role: 'assistant', content: reply || '(no reply)' });
+  } catch (e) {
+    chatState.messages.splice(-1, 1, { role: 'assistant', content: `Sorry—couldn’t get a response (${e?.message || e}).` });
+  } finally {
+    renderChat();
+  }
+}
+
+async function callLLMChatAPI(state){
+  const c   = state.caseObj;
+  const spec = c?.mcqs;
+  const q   = (state.kind === 'mcq') ? (spec?.questions?.[state.qIndex] || null) : null;
+
+  const selected = (state.kind === 'mcq')
+    ? getCurrentMCQContext().selectedText
+    : [];
+
+  const payload = {
+    mode: state.kind === 'mcq' ? 'mcq_chat' : 'oral_chat',
+    caseId: c?.id,
+    title: c?.title,
+    subspecialty: c?.subspecialty,
+    boardPrompt: c?.boardPrompt,
+    expectedAnswer: c?.expectedAnswer,
+    question: q?.stem || null,
+    choices: q?.choices ? q.choices.map(ch=>ch.text) : [],
+    selected,
+    transcript: state.kind === 'oral' ? (getOralContext().transcript || '') : '',
+    messages: state.messages.filter(m => m.role !== 'system')
+  };
+
+  // Prefer dedicated chat API, else fall back to FEEDBACK_API
+  const url = (CONFIG?.MCQ_CHAT_API || CONFIG?.FEEDBACK_API || '').trim();
+  if (!url) throw new Error('No API configured (MCQ_CHAT_API / FEEDBACK_API).');
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(CONFIG?.API_KEY ? {'x-api-key': CONFIG.API_KEY} : {}),
+    ...(CONFIG?.JWT ? { 'Authorization': `Bearer ${CONFIG.JWT}` } : {})
+  };
+
+  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
+  let data = null; try { data = await res.json(); } catch {}
+  if (!res.ok) {
+    const msg = (data && (data.detail || data.error || data.message)) || `${res.status} ${res.statusText}`;
+    throw new Error(msg);
+  }
+  const text = (data && (data.reply || data.message || data.feedback || data.explanation)) || '';
+  return (typeof text === 'string' && text.trim()) ? text.trim() : '(empty reply)';
 }
 
 /* ---------- Utils ---------- */

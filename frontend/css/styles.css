@@ -72,3 +72,62 @@ canvas{position:absolute; inset:0; width:100%; height:100%}
 .mcq-explain.hidden{display:none}
 .mcq-expl-title{font-weight:600;margin:6px 0}
 .mcq-score{margin-top:8px;font-weight:600}
+.chat-modal{z-index: 3000}
+.chat-backdrop{z-index: 2990}
+
+#llmChatLog { white-space: normal; line-height: 1.4; }
+.chat-user, .chat-assistant { margin: 6px 0; }
+
+/* --- LLM Chat Modal (sits above .viewer) --- */
+.modal{
+  position: fixed;
+  inset: 0;
+  display: none;               /* toggled via .show */
+  align-items: center;
+  justify-content: center;
+  z-index: 5000;               /* > .viewer z-index (50) */
+}
+.modal.show{ display: flex; }
+
+.modal .modal-backdrop{
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+}
+
+.modal .modal-inner{
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--muted);
+  border-radius: 12px;
+  width: min(900px, 95vw);
+  max-height: 85vh;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1;
+}
+
+.modal .modal-inner textarea,
+.modal .modal-inner [contenteditable="true"]{
+  background: #0b0d12;           /* dark */
+  color: var(--text);            /* uses your light text color */
+  border: 1px solid var(--muted);
+  border-radius: 10px;
+  width: 100%;
+  min-height: 50vh;              /* taller so you can see everything */
+  padding: 12px 14px;
+  line-height: 1.45;
+  font-size: 15px;
+  resize: vertical;              /* allow manual resize if you want */
+  outline: none;
+}
+
+/* Chat log: allow rendered HTML to flow normally */
+#llmChatLog{
+  white-space: normal;        /* markdown renders as HTML */
+  line-height: 1.4;
+}
+.chat-user{ margin: 6px 0; }
+.chat-assistant{ margin: 6px 0; }
