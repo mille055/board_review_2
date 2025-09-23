@@ -1,0 +1,48 @@
+.
+├── backend
+│   ├── __pycache__
+│   │   └── app.cpython-313.pyc
+│   ├── app.py
+│   └── requirements.txt
+├── frontend
+│   ├── css
+│   │   └── styles.css
+│   ├── data
+│   │   ├── cases.json
+│   │   └── images
+│   │       ├── gi_appendix_1.png
+│   │       ├── gi_appendix_2.png
+│   │       ├── gu_nephrocalcinosis_1.png
+│   │       ├── gu_nephrocalcinosis_2.png
+│   │       ├── msk_knee_1.jpg
+│   │       ├── msk_knee_1.png
+│   │       ├── msk_knee_2.jpg
+│   │       ├── msk_knee_2.png
+│   │       ├── samplemovie.mp4
+│   │       ├── thorax_ctpa_1.png
+│   │       ├── us_adenomyosis_0001.png
+│   │       ├── us_adenomyosis_cine.mov
+│   │       ├── us_adenomyosis_cine.mp4
+│   │       ├── us_epididymitis_1.png
+│   │       ├── us_epididymitis_2.png
+│   │       ├── us_epididymitis_3.png
+│   │       ├── us_epididymitis_4.png
+│   │       ├── us_epididymitis_5.png
+│   │       ├── us_parathyroid_1.png
+│   │       ├── us_parathyroid_2.png
+│   │       └── us_parathyroid_3.png
+│   ├── index.html
+│   └── js
+│       ├── app.js
+│       ├── concepts.js
+│       ├── config.js
+│       ├── grade.js
+│       ├── progress.js
+│       ├── speech.js
+│       ├── store.js
+│       ├── ui.js
+│       └── viewer.js
+├── README.md
+└── tree.txt
+
+8 directories, 38 files

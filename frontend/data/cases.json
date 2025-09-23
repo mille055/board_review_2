@@ -160,11 +160,11 @@
         }
       ]
     }
-},
-{
-  "id": "us-002",
-  "title": "Case 5",
-  "subspecialty": "Ultrasound",
+  },
+  {
+    "id": "us-002",
+    "title": "Case 5",
+    "subspecialty": "Ultrasound",
   "tags": ["ultrasound", "scrotum", "Doppler", "epididymitis", "pyocele"],
   "images": [
     "data/images/us_epididymitis_1.png",
@@ -237,5 +237,63 @@
       }
     ]
   }
+}, 
+{
+  "id": "us_adenomyosis_001",
+  "title": "Case 6",
+  "subspecialty": "Ultrasound",
+  "tags": ["uterus", "adenomyosis", "gynecology", "TVUS", "subendometrial cysts", "menorrhagia", "dysmenorrhea"],
+  "boardPrompt": "35-year-old female with progressive dysmenorrhea and heavy, prolonged menses.",
+  "expectedAnswer": "Findings are most consistent with adenomyosis. The uterus is notable for heterogeneous myometrium and multiple small subendometrial cysts near the junctional zone. There are subtle linear striations extending from the endometrium into the myometrium. The endometrium is not abnormally thickened. The uterus may be mildly globular. No discrete intramural mass or calcifications to suggest a focal fibroid. Correlate with symptoms; consider MRI if uncertain or for pre-procedural planning. Management may include hormonal therapy (e.g., LNG-IUD) depending on fertility considerations.",
+  "rubric": [
+    "Identifies heterogeneous myometrium",
+    "Mentions subendometrial cysts near the junctional zone",
+    "Describes fan-shaped shadowing, venetian-blind shadowing, or linear striations",
+    "Differentiates from fibroid (no discrete mass, ill-defined borders)",
+    "Suggests appropriate next steps (symptom correlation, MRI if needed, medical therapy)"
+  ],
+  "media": [
+    {
+      "type": "image",
+      "src": "data/images/us_adenomyosis_0001.png",
+      "caption": "Transvaginal ultrasound of the uterus in the longitudinal plane"
+    },
+    {
+      "type": "video",
+      "src": "data/images/us_adenomyosis_cine.mp4",
+      "caption": "Transvaginal cine of the uterus in the longitudinal plane",
+      "autoplay": true,
+      "loop": true,
+      "muted": true
+    }
+  ],
+  "mcqs": {
+    "shuffle_questions": false,
+    "questions": [
+      {
+        "id": "q1",
+        "stem": "What is the most likely diagnosis based on this cine?",
+        "shuffle_choices": true,
+        "choices": [
+          { "id": "a", "text": "Diffuse adenomyosis", "correct": true, "explain": "Heterogeneous myometrium with subendometrial cysts and indistinct junctional zone are classic." },
+          { "id": "b", "text": "A single large myometrial fibroid", "correct": false, "explain": "Fibroids are typically discrete, well-circumscribed masses; cysts adjacent to the endometrium favor adenomyosis." },
+          { "id": "c", "text": "Endometrial polyp", "correct": false, "explain": "Polyps are focal endoluminal lesions; myometrial heterogeneity with cysts argues against this." },
+          { "id": "d", "text": "Focal myometrial abscess", "correct": false, "explain": "Abscess would be focal with inflammatory signs and clinical infection." }
+        ]
+      },
+      {
+        "id": "q2",
+        "stem": "Which ultrasound feature most specifically supports adenomyosis?",
+        "shuffle_choices": true,
+        "choices": [
+          { "id": "a", "text": "Subendometrial cysts", "correct": true, "explain": "Tiny cysts near the junctional zone are a classic feature." },
+          { "id": "b", "text": "Coarse shadowing from calcifications", "correct": false, "explain": "Calcifications suggest fibroids more than adenomyosis." },
+          { "id": "c", "text": "A well-circumscribed hypoechoic intramural mass", "correct": false, "explain": "That favors fibroid rather than adenomyosis." },
+          { "id": "d", "text": "Uniformly thin myometrium", "correct": false, "explain": "Adenomyosis often causes asymmetrical thickening or globular enlargement." }
+        ]
+      }
+    ]
+  }
 }
+
 ]
