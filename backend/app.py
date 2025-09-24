@@ -197,6 +197,15 @@ class AttemptIn(BaseModel):
     rubricTotal: int
     letter: str
 
+class AttemptRow(BaseModel):
+    ts: int = Field(default_factory=lambda: int(time.time()*1000))
+    caseId: str
+    subspecialty: str = "Unknown"
+    similarity: float = 0.0
+    rubricHit: int = 0
+    rubricTotal: int = 0
+    letter: str = ""
+
 class ProgressOut(BaseModel):
     reviewedCount: int
     per: Dict[str, Any]
@@ -512,6 +521,22 @@ Respond with:
 async def add_attempt(a: AttemptIn, identity: str = Depends(current_identity)):
     await insert_attempt(identity, a.dict())
     return {"ok": True}
+
+@app.get("/api/progress/attempts", response_model=List[AttemptRow])
+async def get_progress_attempts(identity: str = Depends(current_identity)):
+    rows = await list_attempts(identity)
+    out = []
+    for r in rows:
+        out.append({
+            "ts": int(r.get("ts") or time.time()*1000),
+            "caseId": r.get("caseId", ""),
+            "subspecialty": r.get("subspecialty", "Unknown"),
+            "similarity": float(r.get("similarity", 0.0)),
+            "rubricHit": int(r.get("rubricHit", 0)),
+            "rubricTotal": int(r.get("rubricTotal", 0)),
+            "letter": r.get("letter", "")
+        })
+    return out
 
 @app.get("/api/progress", response_model=ProgressOut)
 async def get_progress(identity: str = Depends(current_identity)):

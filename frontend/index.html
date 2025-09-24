@@ -57,6 +57,7 @@
         <div style="display:flex; gap:8px">
           <button class="btn ghost" id="loadSamples">Load Samples</button>
           <button class="btn" id="importBtn">Import JSON</button>
+          <button id="openProgress" class="btn ghost">Progress</button>
           <input id="fileInput" type="file" accept="application/json" class="sr"/>
         </div>
       </div>
@@ -168,6 +169,31 @@
       </div>
     </div>
   </div>
+
+  <!-- Progress Modal -->
+  <div id="progressModal" class="modal">
+    <div class="modal-backdrop"></div>
+    <div class="modal-inner" style="width:min(960px,94vw);">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <h3 style="margin:0;">Your Progress</h3>
+        <button id="closeProgress" class="btn ghost">Close</button>
+      </div>
+
+      <div class="small" id="progressSummary"></div>
+
+      <div style="display:grid;grid-template-columns:1fr;gap:18px;margin-top:10px;">
+        <div class="box">
+          <div class="label">Similarity over time</div>
+          <canvas id="chartTime" height="140"></canvas>
+        </div>
+        <div class="box">
+          <div class="label">By subspecialty (mean similarity)</div>
+          <canvas id="chartSubs" height="140"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
   <!-- Markdown libs -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

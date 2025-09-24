@@ -1,0 +1,10 @@
+[
+  { "caseId": "neuro-001", "subspecialty": "Neuroradiology", "similarity": 0.72, "ts": 1716940800000 },
+  { "caseId": "msk-001",   "subspecialty": "Musculoskeletal Radiology", "similarity": 0.61, "ts": 1717027200000 },
+  { "caseId": "gi-001",    "subspecialty": "Gastrointestinal Radiology", "similarity": 0.78, "ts": 1717113600000 },
+  { "caseId": "gu-001",    "subspecialty": "Genitourinary Radiology", "similarity": 0.64, "ts": 1717200000000 },
+  { "caseId": "us-001",    "subspecialty": "Ultrasound", "similarity": 0.83, "ts": 1717286400000 },
+  { "caseId": "ped-001",   "subspecialty": "Pediatric Radiology", "similarity": 0.58, "ts": 1717372800000 },
+  { "caseId": "bre-001",   "subspecialty": "Breast Imaging", "similarity": 0.69, "ts": 1717459200000 },
+  { "caseId": "thor-001",  "subspecialty": "Thoracic Radiology", "similarity": 0.66, "ts": 1717545600000 }
+]

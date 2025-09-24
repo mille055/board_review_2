@@ -1,8 +1,14 @@
 import { loadCases } from './store.js';
 import { initUI } from './ui.js';
+import { bindProgressModal, openProgressModal } from './progress_ui.js';
 
 (async function main(){
-  // Initial render with empty list; user can click "Load Samples" or Import JSON
-  await loadCases(); // tries data/cases.json; ok if missing
+  await loadCases();
   initUI();
+  bindProgressModal();               // ⬅️ wire up the Progress button
+
+  // Optional: auto-open with ?progress=1
+  if (new URLSearchParams(location.search).get('progress') === '1') {
+    openProgressModal();
+  }
 })();

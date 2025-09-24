@@ -1,0 +1,14 @@
+{
+  "reviewedCount": 12,
+  "per": {
+    "Neuroradiology":   { "attempts": 3, "meanSim": 72, "meanRubric": 68 },
+    "Musculoskeletal Radiology": { "attempts": 2, "meanSim": 61, "meanRubric": 55 },
+    "Gastrointestinal Radiology": { "attempts": 1, "meanSim": 78, "meanRubric": 70 },
+    "Genitourinary Radiology": { "attempts": 2, "meanSim": 64, "meanRubric": 60 },
+    "Ultrasound":       { "attempts": 1, "meanSim": 83, "meanRubric": 75 },
+    "Pediatric Radiology": { "attempts": 1, "meanSim": 58, "meanRubric": 50 },
+    "Breast Imaging":   { "attempts": 1, "meanSim": 69, "meanRubric": 65 },
+    "Vascular & Interventional Radiology": { "attempts": 0, "meanSim": 0, "meanRubric": 0 },
+    "Thoracic Radiology": { "attempts": 1, "meanSim": 66, "meanRubric": 62 }
+  }
+}
