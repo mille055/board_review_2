@@ -2,8 +2,8 @@ const API_BASE = '/api';  // Nginx proxies this to the backend inside the contai
 
 export const CONFIG = {
   CASES_URL: 'data/cases.json',     // later: /api/cases
-  FEEDBACK_API: '${API_BASE}/feedback',    // now points to backend
-  MCQ_CHAT_API: '${API_BASE}/mcq/chat',
+  FEEDBACK_API: `${API_BASE}/feedback`,    // now points to backend
+  MCQ_CHAT_API: `${API_BASE}/mcq/chat`,
   TRANSCRIBE: 'webspeech',          // 'webspeech' | 'aws'
   FEEDBACK_MODE: 'hybrid',         // 'llm' | 'heuristic | 'hybrid'
   API_KEY: 'dev-123' 
