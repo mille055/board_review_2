@@ -92,10 +92,14 @@
         <div id="oralPane">
           <div class="section">
             <div class="label">Transcript (demo)</div>
-            <div id="vTranscript" class="small box" style="white-space:pre-wrap; min-height:80px"></div>
+            <!--<div id="vTranscript" class="small box" style="white-space:pre-wrap; min-height:80px"></div>-->
+            <textarea id="vTranscript" 
+              class="transcript-area" 
+              placeholder="Click here to type, or use the microphone to dictate..."
+              rows="8"></textarea>
             <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
               <button class="btn" id="vMicBtn" title="Demo transcript via Web Speech API">🎤 Start Demo Transcribe</button>
-              <button class="btn ghost" id="vPasteBtn">Paste/Edit Transcript</button>
+              <!--<button class="btn ghost" id="vPasteBtn">Paste/Edit Transcript</button>-->
               <button class="btn" id="gradeBtn">Grade</button>
               <!-- NEW: Ask LLM in oral mode -->
               <button class="btn ghost" id="llmAskBtnOral">Ask the LLM</button>

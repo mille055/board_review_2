@@ -1,7 +1,8 @@
 import { SUBS, CONFIG } from './config.js';
 import { getAll, setCases } from './store.js';
 import { openViewer as openViewerBase } from './viewer.js';
-import { toggleMic, pasteTranscript, getTranscript } from './speech.js';
+import { toggleMic, getTranscript } from './speech.js';
+//import { pasteTranscript } from './speech.js';
 import { gradeHeuristic, heuristicFeedback, buildLLMPayload, letter } from './grade.js';
 import { recordAttempt, getStats } from './progress.js';
 
@@ -180,13 +181,24 @@ export function initUI(){
 
   // Viewer actions (oral mode widgets live in oralPane)
   document.getElementById('vMicBtn')?.addEventListener('click', toggleMic);
-  document.getElementById('vPasteBtn')?.addEventListener('click', pasteTranscript);
+  //document.getElementById('vPasteBtn')?.addEventListener('click', pasteTranscript);
 
   // 🚀 Make this handler async to allow 'await' inside
+  // document.getElementById('gradeBtn')?.addEventListener('click', async ()=>{
+  //   const tr = getTranscript();
+  //   if(!tr) return alert('No transcript. Use mic or paste text.');
+  //   const caseObj = window.__currentCaseForGrading; // set when opening viewer
+  //   if(!caseObj) return;
   document.getElementById('gradeBtn')?.addEventListener('click', async ()=>{
-    const tr = getTranscript();
-    if(!tr) return alert('No transcript. Use mic or paste text.');
-    const caseObj = window.__currentCaseForGrading; // set when opening viewer
+    const transcriptEl = document.getElementById('vTranscript'); // Get element directly
+    const tr = transcriptEl ? transcriptEl.value.trim() : ''; // Read .value
+  
+    console.log('Transcript element:', transcriptEl); // Debug line
+    console.log('Transcript value:', tr); // Debug line
+  
+    if(!tr) return alert('No transcript. Use mic or type your response.');
+  
+    const caseObj = window.__currentCaseForGrading;
     if(!caseObj) return;
 
     const heur = gradeHeuristic({

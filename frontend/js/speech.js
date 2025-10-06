@@ -8,7 +8,8 @@ if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
   recog = new SR(); recog.continuous=true; recog.interimResults=true; recog.lang='en-US';
   recog.onresult = (e)=>{
     let txt=''; for(const res of e.results){ txt += res[0].transcript; txt += res.isFinal?'\n':''; }
-    transcriptEl.textContent = txt.trim();
+    transcriptEl.value = txt.trim();
+    //transcriptEl.textContent = txt.trim();
   };
   recog.onend = ()=>{ listening=false; if(micBtn) micBtn.textContent='🎤 Start Demo Transcribe'; };
 }
@@ -18,8 +19,12 @@ export function toggleMic(){
   if(!listening){ recog.start(); listening=true; micBtn.textContent='■ Stop'; }
   else { recog.stop(); }
 }
-export function pasteTranscript(){
-  const txt = prompt("Paste or edit transcript text:");
-  if(txt!=null){ transcriptEl.textContent = txt.trim(); }
+// export function pasteTranscript(){
+//   const txt = prompt("Paste or edit transcript text:");
+//   if(txt!=null){ transcriptEl.textContent = txt.trim(); }
+// }
+export function getTranscript(){
+  const el = document.getElementById('vTranscript');
+  if (!el) return '';
+  return (el.value || '').trim();
 }
-export function getTranscript(){ return (transcriptEl.textContent||'').trim(); }

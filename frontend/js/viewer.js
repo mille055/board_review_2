@@ -157,7 +157,8 @@ export function openViewer(caseObj){
   currentCase = caseObj; currentIdx=0; assets = getAssets(caseObj);
 
   // Clear transcript + feedback from previous case
-  if (vTranscript) vTranscript.textContent = '';
+  //if (vTranscript) vTranscript.textContent = '';
+  if (vTranscript) vTranscript.value = '';
   if (vFeedback)   vFeedback.textContent   = '';
   if (vScore)      vScore.textContent      = '–';
   if (vLLM)        vLLM.textContent        = '';
