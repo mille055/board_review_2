@@ -5,8 +5,7 @@
     "subspecialty": "Gastrointestinal Radiology",
     "tags": ["abdomen", "RLQ pain"],
     "images": [
-      "data/images/gi_appendix_1.png",
-      "data/images/gi_appendix_2.png",
+      "data/images/gi_appendix_5.png",
       "data/images/gi_appendix_3.png",
       "data/images/gi_appendix_4.png"
     ],
