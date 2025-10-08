@@ -602,11 +602,30 @@ async function callLLMChatAPI(state){
   const url = (CONFIG?.MCQ_CHAT_API || CONFIG?.FEEDBACK_API || '').trim();
   if (!url) throw new Error('No API configured (MCQ_CHAT_API / FEEDBACK_API).');
 
+  // const headers = {
+  //   'Content-Type': 'application/json',
+  //   ...(CONFIG?.API_KEY ? {'x-api-key': CONFIG.API_KEY} : {}),
+  //   ...(CONFIG?.JWT ? { 'Authorization': `Bearer ${CONFIG.JWT}` } : {})
+  // };
+
+  // const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
+  // let data = null; try { data = await res.json(); } catch {}
+  // if (!res.ok) {
+  //   const msg = (data && (data.detail || data.error || data.message)) || `${res.status} ${res.statusText}`;
+  //   throw new Error(msg);
+  // }
+  // const text = (data && (data.reply || data.message || data.feedback || data.explanation)) || '';
+  // return (typeof text === 'string' && text.trim()) ? text.trim() : '(empty reply)';
+  const token = localStorage.getItem('jwt');
   const headers = {
-    'Content-Type': 'application/json',
-    ...(CONFIG?.API_KEY ? {'x-api-key': CONFIG.API_KEY} : {}),
-    ...(CONFIG?.JWT ? { 'Authorization': `Bearer ${CONFIG.JWT}` } : {})
+    'Content-Type': 'application/json'
   };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  } else if (CONFIG?.API_KEY) {
+    headers['x-api-key'] = CONFIG.API_KEY;
+  }
 
   const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
   let data = null; try { data = await res.json(); } catch {}

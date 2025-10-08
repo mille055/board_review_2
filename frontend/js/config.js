@@ -6,10 +6,10 @@ export const CONFIG = {
   MCQ_CHAT_API: `${API_BASE}/mcq/chat`,
   TRANSCRIBE: 'webspeech',          // 'webspeech' | 'aws'
   FEEDBACK_MODE: 'hybrid',         // 'llm' | 'heuristic | 'hybrid'
-  API_KEY: 'dev-123' 
+  // API_KEY: 'dev-123' 
 };
 
 export const SUBS = [
   "Neuroradiology","Musculoskeletal Radiology","Gastrointestinal Radiology","Genitourinary Radiology","Ultrasound",
-  "Pediatric Radiology","Breast Imaging","Vascular & Interventional Radiology","Thoracic Radiology"
+  "Pediatric Radiology","Breast Imaging","Vascular & Interventional Radiology","Thoracic Radiology", "Physics"
 ];

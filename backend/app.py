@@ -345,7 +345,20 @@ def health():
 async def register(body: UserCreate):
     if await get_user(body.email):
         raise HTTPException(400, "User already exists")
+    
+    # DEBUG LOGGING
+    log.info(f"=== REGISTER DEBUG ===")
+    log.info(f"Email: {body.email}")
+    log.info(f"Password length: {len(body.password)}")
+
     await create_user(body.email, body.password)
+    
+    # Verify it was stored correctly
+    user_check = await get_user(body.email)
+    log.info(f"User created and verified: {user_check is not None}")
+    if user_check:
+        log.info(f"Hash starts with: {user_check.get('password_hash', '')[:20]}...")
+
     token = create_access_token(body.email)
     return TokenOut(access_token=token)
 
@@ -353,9 +366,33 @@ async def register(body: UserCreate):
 async def login(form: OAuth2PasswordRequestForm = Depends()):
     email = form.username
     user = await get_user(email)
+
+    # DEBUG LOGGING - Remove after fixing
+    log.info(f"=== LOGIN DEBUG ===")
+    log.info(f"Email: {email}")
+    log.info(f"Password length: {len(form.password)}")
+    log.info(f"User found: {user is not None}")
+
+    if user:
+        log.info(f"Stored hash exists: {bool(user.get('password_hash'))}")
+        log.info(f"Hash starts with: {user.get('password_hash', '')[:20]}...")
+        
+        # Test password verification
+        try:
+            password_match = verify_pw(form.password, user["password_hash"])
+            log.info(f"Password verification result: {password_match}")
+        except Exception as e:
+            log.error(f"Password verification error: {e}")
+            password_match = False
+    else:
+        log.info("User not found in database")
+
     if not user or not verify_pw(form.password, user["password_hash"]):
+        log.info("Login failed - returning 401")
         raise HTTPException(401, "Invalid credentials")
+    
     token = create_access_token(email)
+    log.info("Login successful - returning token")
     return TokenOut(access_token=token)
 
 @app.get("/api/me")

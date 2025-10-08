@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Login — Oral Boards Trainer</title>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <style>
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    }
+    
+    .login-card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 40px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+    
+    .login-card h1 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      text-align: center;
+    }
+    
+    .login-card .subtitle {
+      text-align: center;
+      color: #999;
+      margin-bottom: 32px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 14px;
+      color: #ccc;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      border: 1px solid #444;
+      border-radius: 4px;
+      background: #2a2a2a;
+      color: #fff;
+      box-sizing: border-box;
+    }
+    
+    .form-group input:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+    }
+    
+    .error {
+      background: #ff4444;
+      color: white;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .error.show {
+      display: block;
+    }
+    
+    .toggle-form {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    
+    .toggle-form a {
+      color: #4CAF50;
+      text-decoration: none;
+    }
+    
+    .toggle-form a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      <h1>Oral Boards Trainer</h1>
+      <p class="subtitle">Radiology Practice Platform</p>
+      
+      <div id="errorMsg" class="error"></div>
+      
+      <!-- Login Form -->
+      <div id="loginSection">
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="loginEmail">Email</label>
+            <input type="email" id="loginEmail" required autofocus>
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input type="password" id="loginPassword" required>
+          </div>
+          <button type="submit" class="btn" style="width: 100%; padding: 12px;">
+            Login
+          </button>
+        </form>
+        <div class="toggle-form">
+          <a href="#" id="showRegister">Don't have an account? Register</a>
+        </div>
+      </div>
+      
+      <!-- Register Form -->
+      <div id="registerSection" style="display: none;">
+        <form id="registerForm">
+          <div class="form-group">
+            <label for="registerEmail">Email</label>
+            <input type="email" id="registerEmail" required>
+          </div>
+          <div class="form-group">
+            <label for="registerPassword">Password</label>
+            <input type="password" id="registerPassword" required minlength="6">
+          </div>
+          <button type="submit" class="btn" style="width: 100%; padding: 12px;">
+            Register
+          </button>
+        </form>
+        <div class="toggle-form">
+          <a href="#" id="showLogin">Already have an account? Login</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- IMPORTANT: Regular script, NOT type="module" -->
+  <script>
+    const errorMsg = document.getElementById('errorMsg');
+    
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.add('show');
+      setTimeout(() => errorMsg.classList.remove('show'), 5000);
+    }
+    
+    function showLogin() {
+      document.getElementById('loginSection').style.display = 'block';
+      document.getElementById('registerSection').style.display = 'none';
+      document.getElementById('loginEmail')?.focus();
+    }
+    
+    function showRegister() {
+      document.getElementById('loginSection').style.display = 'none';
+      document.getElementById('registerSection').style.display = 'block';
+      document.getElementById('registerEmail')?.focus();
+    }
+    
+    document.getElementById('showRegister')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      showRegister();
+    });
+    
+    document.getElementById('showLogin')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      showLogin();
+    });
+    
+    document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      console.log('Attempting login with:', email);
+
+      try {
+        const formData = new URLSearchParams();
+        formData.append('username', email);
+        formData.append('password', password);
+        
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData
+        });
+        
+        console.log('Login response status:', res.status);
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          console.error('Login error details:', err); 
+          throw new Error(err.detail || 'Login failed');
+        }
+        
+        const data = await res.json();
+        console.log('Login successful, got token');
+        localStorage.setItem('jwt', data.access_token);
+        window.location.href = '/'; // Redirect to main app
+      } catch (err) {
+        console.error('Login error:', err); 
+        showError(err.message);
+      }
+    });
+    
+    document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('registerEmail').value;
+      const password = document.getElementById('registerPassword').value;
+      console.log('Attempting registration with:', email); 
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || 'Registration failed');
+        }
+        
+        const data = await res.json();
+        localStorage.setItem('jwt', data.access_token);
+        window.location.href = '/'; // Redirect to main app
+      } catch (err) {
+        showError(err.message);
+      }
+    });
+  </script>
+</body>
+</html>

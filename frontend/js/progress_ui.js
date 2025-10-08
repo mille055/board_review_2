@@ -9,7 +9,13 @@ function mean(list){ return list.length ? list.reduce((a,b)=>a+b,0)/list.length 
 
 async function fetchAttempts(){
   const headers = {};
-  if (CONFIG.API_KEY) headers['x-api-key'] = CONFIG.API_KEY;
+  const token = localStorage.getItem('jwt');
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  } else if (CONFIG.API_KEY) {
+    headers['x-api-key'] = CONFIG.API_KEY;
+  }
 
   // 1) Try the (optional) detail endpoint if you later add it
   try {
@@ -47,9 +53,29 @@ async function fetchAttempts(){
   return r3.json();
 }
 
+// async function fetchProgress() {
+//   try {
+//     const r = await fetch('/api/progress', { headers: authHeaders() });
+//     if (!r.ok) throw new Error('api failed');
+//     return await r.json();
+//   } catch {
+//     // fallback to sample file
+//     const r2 = await fetch('data/progress_sample.json', { cache: 'no-store' });
+//     return await r2.json();
+//   }
+// }
 async function fetchProgress() {
+  const token = localStorage.getItem('jwt');
+  const headers = {};
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  } else if (CONFIG.API_KEY) {
+    headers['x-api-key'] = CONFIG.API_KEY;
+  }
+  
   try {
-    const r = await fetch('/api/progress', { headers: authHeaders() });
+    const r = await fetch('/api/progress', { headers });
     if (!r.ok) throw new Error('api failed');
     return await r.json();
   } catch {
