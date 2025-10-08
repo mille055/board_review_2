@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Oral Boards Trainer — Radiology</title>
   <link rel="stylesheet" href="css/styles.css"/>
+  <!-- NOW Chart.js can load -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+  <!-- Markdown libs -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 </head>
 <body>
   <div class="app">
@@ -179,31 +185,70 @@
   <!-- Progress Modal -->
   <div id="progressModal" class="modal">
     <div class="modal-backdrop"></div>
-    <div class="modal-inner" style="width:min(960px,94vw);">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-        <h3 style="margin:0;">Your Progress</h3>
-        <button id="closeProgress" class="btn ghost">Close</button>
-      </div>
-
-      <div class="small" id="progressSummary"></div>
-
-      <div style="display:grid;grid-template-columns:1fr;gap:18px;margin-top:10px;">
-        <div class="box">
-          <div class="label">Similarity over time</div>
-          <canvas id="chartTime" height="140"></canvas>
-        </div>
-        <div class="box">
-          <div class="label">By subspecialty (mean similarity)</div>
-          <canvas id="chartSubs" height="140"></canvas>
+    <div class="modal-inner" style="width:min(1200px,96vw); max-height:90vh; overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <h3 style="margin:0;">Your Progress Dashboard</h3>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <select id="timeRangeSelect" class="input" style="width:150px;">
+            <option value="today">Today</option>
+            <option value="week" selected>Last 7 Days</option>
+            <option value="2weeks">Last 14 Days</option>
+            <option value="month">Last 30 Days</option>
+            <option value="all">All Time</option>
+          </select>
+          <button id="loadSampleProgress" class="btn ghost" title="Load sample data for demo">Load Sample</button>
+          <button id="clearProgress" class="btn ghost" title="Clear all progress data" style="color:#EF5350;">Clear All</button>
+          <button id="closeProgress" class="btn ghost">Close</button>
         </div>
       </div>
-    </div>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
-  <!-- Markdown libs -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+      <!-- Summary Stats -->
+      <div id="progressSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px;"></div>
+
+      <!-- Charts Container -->
+      <div style="display:grid;grid-template-columns:1fr;gap:18px;">
+        
+        <!-- Performance Over Time -->
+        <div class="box">
+          <div class="label">Performance Over Time</div>
+          <canvas id="chartTime" height="180"></canvas>
+        </div>
+
+        <!-- By Subspecialty -->
+        <div class="box">
+          <div class="label">Performance by Subspecialty</div>
+          <div style="margin-bottom:10px;">
+            <span class="small" style="color:#999;">
+              ✓ Proficient (≥75%) • ⚠ Needs Work (60-74%) • ⚡ At Risk (&lt;60%)
+            </span>
+          </div>
+          <canvas id="chartSubs" height="200"></canvas>
+        </div>
+
+        <!-- Weekly Breakdown -->
+        <div class="box">
+          <div class="label">Weekly Activity</div>
+          <canvas id="chartWeekly" height="140"></canvas>
+        </div>
+
+        <!-- Most Missed Diagnoses -->
+        <div class="box">
+          <div class="label">Cases Needing Review (Lowest Scores)</div>
+          <div id="missedCases" class="small" style="max-height:200px;overflow-y:auto;"></div>
+        </div>
+
+        <!-- Grade Distribution -->
+        <div class="box">
+          <div class="label">Grade Distribution</div>
+          <div style="display:flex;justify-content:center;align-items:center;height:250px;">
+            <canvas id="chartGrades"></canvas>
+          </div>
+        </div>
+
+      </div> <!-- Close charts grid -->
+    </div> <!-- Close modal-inner -->
+  </div> <!-- Close progressModal - THIS IS CRITICAL! -->
+  
 
   <!-- App boot -->
   <script type="module">

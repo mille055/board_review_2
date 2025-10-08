@@ -1,10 +1,12 @@
 [
-  { "caseId": "neuro-001", "subspecialty": "Neuroradiology", "similarity": 0.72, "ts": 1716940800000 },
-  { "caseId": "msk-001",   "subspecialty": "Musculoskeletal Radiology", "similarity": 0.61, "ts": 1717027200000 },
-  { "caseId": "gi-001",    "subspecialty": "Gastrointestinal Radiology", "similarity": 0.78, "ts": 1717113600000 },
-  { "caseId": "gu-001",    "subspecialty": "Genitourinary Radiology", "similarity": 0.64, "ts": 1717200000000 },
-  { "caseId": "us-001",    "subspecialty": "Ultrasound", "similarity": 0.83, "ts": 1717286400000 },
-  { "caseId": "ped-001",   "subspecialty": "Pediatric Radiology", "similarity": 0.58, "ts": 1717372800000 },
-  { "caseId": "bre-001",   "subspecialty": "Breast Imaging", "similarity": 0.69, "ts": 1717459200000 },
-  { "caseId": "thor-001",  "subspecialty": "Thoracic Radiology", "similarity": 0.66, "ts": 1717545600000 }
+  {"caseId":"gi-001","subspecialty":"Gastrointestinal Radiology","similarity":0.85,"rubricHit":6,"rubricTotal":7,"letter":"A","ts":1728259200000},
+  {"caseId":"thorax-002","subspecialty":"Thoracic Radiology","similarity":0.72,"rubricHit":5,"rubricTotal":7,"letter":"B","ts":1728345600000},
+  {"caseId":"msk-003","subspecialty":"Musculoskeletal Radiology","similarity":0.58,"rubricHit":3,"rubricTotal":6,"letter":"D","ts":1728432000000},
+  {"caseId":"us-001","subspecialty":"Ultrasound","similarity":0.91,"rubricHit":6,"rubricTotal":6,"letter":"A","ts":1728518400000},
+  {"caseId":"gi-001","subspecialty":"Gastrointestinal Radiology","similarity":0.78,"rubricHit":5,"rubricTotal":7,"letter":"B","ts":1728604800000},
+  {"caseId":"thorax-002","subspecialty":"Thoracic Radiology","similarity":0.65,"rubricHit":4,"rubricTotal":7,"letter":"C","ts":1728691200000},
+  {"caseId":"us-002","subspecialty":"Ultrasound","similarity":0.88,"rubricHit":7,"rubricTotal":8,"letter":"A","ts":1728777600000},
+  {"caseId":"msk-003","subspecialty":"Musculoskeletal Radiology","similarity":0.54,"rubricHit":3,"rubricTotal":6,"letter":"D","ts":1728864000000},
+  {"caseId":"neuro-001","subspecialty":"Neuroradiology","similarity":0.45,"rubricHit":2,"rubricTotal":6,"letter":"F","ts":1728950400000},
+  {"caseId":"gi-001","subspecialty":"Gastrointestinal Radiology","similarity":0.92,"rubricHit":7,"rubricTotal":7,"letter":"A","ts":1729036800000}
 ]

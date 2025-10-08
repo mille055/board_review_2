@@ -12,6 +12,7 @@
     "boardPrompt": "You are evaluating a 23-year-old presenting with 24 hours of right lower quadrant abdominal pain, fever, and mild leukocytosis.",
     "expectedAnswer": "Diagnosis: Acute appendicitis. Key: enlarged appendix, periappendiceal stranding and free fluid, +/- appendicolith; assess perforation/abscess. Management: urgent surgical consult.",
     "rubric": [
+      "names study type (CT abdomen/pelvis with IV contrast)",
       "names acute appendicitis",
       "mentions enlarged or dilated appendix or >6 mm",
       "mentions stranding",
@@ -32,6 +33,7 @@
     "boardPrompt": "An adult presents with acute cough and mild dyspnea after recent surgery. A PA chest radiograph is provided.",
     "expectedAnswer": "Diagnosis: Right lower lobe (RLL) collapse (atelectasis).\n\nKey: On PA view, there is increased triangular/retrocardiac opacity projecting over the medial/inferior right lung with **loss of the right hemidiaphragm silhouette** (silhouette sign). The right heart border is **preserved** (argues against RML collapse). There are secondary signs of **volume loss** including crowding of the right lower lobe vessels and slight right hemidiaphragm elevation. On the lateral view, there is **wedge-like retrocardiac opacity** with **inferior/posterior displacement of the major fissure** consistent with RLL volume loss.\n\nDifferential: RLL consolidation/pneumonia (less volume loss, air bronchograms; silhouette of diaphragm can also be lost), aspiration in the dependent lower lobe, pleural effusion layering posteriorly (meniscus, blunting) rather than true parenchymal collapse, endobronchial obstruction (mucus plug most common post-op; less commonly tumor/foreign body).\n\nManagement: Correlate clinically and compare priors. Encourage pulmonary toilet (incentive spirometry), treat underlying cause (e.g., bronchodilators, mucolytics). If persistent or severe atelectasis, consider **bronchoscopy** to remove mucus plug or evaluate for obstructing lesion. If infection suspected, manage for pneumonia. Document resolution on follow-up imaging.",
     "rubric": [
+      "Names study type (chest frontal radiograph)",
       "Names the finding as right lower lobe collapse/atelectasis.",
     "Correctly identifies **loss of the right hemidiaphragm silhouette** on PA view (silhouette sign).",
     "Notes **preserved right heart border** (helps exclude right middle lobe collapse).",
@@ -124,6 +126,7 @@
     "boardPrompt": "A 28-year-old athlete presents with acute knee injury after pivoting.",
     "expectedAnswer": "Diagnosis: Complete ACL tear. Key: fiber discontinuity, anterior tibial translation, pivot-shift bone bruising. Associated: MCL sprain, meniscal tears.",
     "rubric": [
+      "names type of study (MRI knee)",
       "names ACL tear",
       "describes fiber discontinuity or abnormal ACL",
       "mentions pivot-shift bone bruise pattern",
@@ -144,6 +147,7 @@
   "boardPrompt": "A 35-year-old patient is referred for evaluation of recurrent nephrolithiasis.",
   "expectedAnswer": "Diagnosis: Medullary nephrocalcinosis. Key: echogenic medullary pyramids with shadowing on ultrasound; cortical sparing. Differential: primary hyperparathyroidism, medullary sponge kidney, distal (type 1) renal tubular acidosis, hypervitaminosis D, sarcoidosis. Management: address underlying metabolic cause; nephrology referral.",
   "rubric": [
+    "names type of study (renal ultrasound)",
     "names medullary nephrocalcinosis",
     "describes echogenic renal pyramids",
     "mentions posterior acoustic shadowing",
@@ -248,6 +252,7 @@
   "boardPrompt": "A 75-year-old male presents with acute right scrotal pain and swelling, low-grade fever, and dysuria.",
   "expectedAnswer": "Diagnosis: Acute right epididymitis with suspected pyocele (complex, multiseptated peritesticular fluid). Key findings: right epididymal enlargement and heterogeneous echotexture; marked hyperemia on color Doppler; multiseptated fluid collection consistent with pyocele; contralateral left epididymal tail appears normal for comparison. No sonographic features of torsion (testicular arterial/venous flow preserved). Management: contact the ordering provider and recommend urologic consultation and antibiotics.",
   "rubric": [
+    "Names type of study (scrotal ultrasound)",
     "names acute right epididymitis",
     "describes right epididymal enlargement",
     "mentions heterogeneous echotexture of the right epididymis",
@@ -318,6 +323,7 @@
   "boardPrompt": "35-year-old female with progressive dysmenorrhea and heavy, prolonged menses.",
   "expectedAnswer": "Findings are most consistent with adenomyosis. The uterus is notable for heterogeneous myometrium and multiple small subendometrial cysts near the junctional zone. There are subtle linear striations extending from the endometrium into the myometrium. The endometrium is not abnormally thickened. The uterus may be mildly globular. No discrete intramural mass or calcifications to suggest a focal fibroid. Correlate with symptoms; consider MRI if uncertain or for pre-procedural planning. Management may include hormonal therapy (e.g., LNG-IUD) depending on fertility considerations.",
   "rubric": [
+    "Names type of study (pelvic ultrasound)",
     "Identifies heterogeneous myometrium",
     "Mentions subendometrial cysts near the junctional zone",
     "Describes fan-shaped shadowing, venetian-blind shadowing, or linear striations",
