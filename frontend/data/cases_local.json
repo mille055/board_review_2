@@ -1,0 +1,377 @@
+[
+  {
+    "id": "gi-001",
+    "title": "Case 1",
+    "subspecialty": "Gastrointestinal Radiology",
+    "tags": ["abdomen", "RLQ pain"],
+    "images": [
+      "data/images/gi_appendix_5.png",
+      "data/images/gi_appendix_3.png",
+      "data/images/gi_appendix_4.png"
+    ],
+    "boardPrompt": "You are evaluating a 23-year-old presenting with 24 hours of right lower quadrant abdominal pain, fever, and mild leukocytosis.",
+    "expectedAnswer": "Diagnosis: Acute appendicitis. Key: enlarged appendix, periappendiceal stranding and free fluid, +/- appendicolith; assess perforation/abscess. Management: urgent surgical consult.",
+    "rubric": [
+      "names study type (CT abdomen/pelvis with IV contrast)",
+      "names acute appendicitis",
+      "mentions enlarged or dilated appendix or >6 mm",
+      "mentions stranding",
+      "mentions fluid",
+      "considers appendicolith",
+      "addresses complications (peforation, which could manifest as extraluminal or free air, or abscess, or discontinuity of the wall)",
+      "recommends surgery or surgical consultation. Antibiotics may also be mentioned."
+    ]
+  },
+  {
+    "id": "thorax-002",
+    "title": "Case 2",
+    "subspecialty": "Thoracic Radiology",
+    "tags": ["atelectasis", "right lower lobe", "silhouette sign", "volume loss", "postoperative"],
+    "media": [
+      { "type": "image", "src": "data/images/thorax_rllcollapse_1.png", "caption": "PA Chest Radiograph" }
+    ],
+    "boardPrompt": "An adult presents with acute cough and mild dyspnea after recent surgery. A PA chest radiograph is provided.",
+    "expectedAnswer": "Diagnosis: Right lower lobe (RLL) collapse (atelectasis).\n\nKey: On PA view, there is increased triangular/retrocardiac opacity projecting over the medial/inferior right lung with **loss of the right hemidiaphragm silhouette** (silhouette sign). The right heart border is **preserved** (argues against RML collapse). There are secondary signs of **volume loss** including crowding of the right lower lobe vessels and slight right hemidiaphragm elevation. On the lateral view, there is **wedge-like retrocardiac opacity** with **inferior/posterior displacement of the major fissure** consistent with RLL volume loss.\n\nDifferential: RLL consolidation/pneumonia (less volume loss, air bronchograms; silhouette of diaphragm can also be lost), aspiration in the dependent lower lobe, pleural effusion layering posteriorly (meniscus, blunting) rather than true parenchymal collapse, endobronchial obstruction (mucus plug most common post-op; less commonly tumor/foreign body).\n\nManagement: Correlate clinically and compare priors. Encourage pulmonary toilet (incentive spirometry), treat underlying cause (e.g., bronchodilators, mucolytics). If persistent or severe atelectasis, consider **bronchoscopy** to remove mucus plug or evaluate for obstructing lesion. If infection suspected, manage for pneumonia. Document resolution on follow-up imaging.",
+    "rubric": [
+      "Names study type (chest frontal radiograph)",
+      "Names the finding as right lower lobe collapse/atelectasis.",
+    "Correctly identifies **loss of the right hemidiaphragm silhouette** on PA view (silhouette sign).",
+    "Notes **preserved right heart border** (helps exclude right middle lobe collapse).",
+    "Describes **retrocardiac triangular/wedge opacity** and **major fissure displacement on lateral**.",
+    "Mentions **volume loss signs** (vessel crowding, fissure shift, diaphragm elevation).",
+    "Provides appropriate **differential** (pneumonia vs. aspiration vs. effusion vs. endobronchial obstruction).",
+    "Recommends **pulmonary toilet** and **bronchoscopy if persistent/obstructing lesion suspected**."
+    ],
+    "mcqs": {
+    "shuffle_questions": false,
+    "questions": [
+      {
+        "id": "rll-q1",
+        "stem": "On the PA view, which silhouette loss most strongly supports right lower lobe collapse?",
+        "choices": [
+          { "id": "a", "text": "Loss of right heart border" },
+          { "id": "b", "text": "Loss of right hemidiaphragm", "correct": true, "explain": "RLL is adjacent to the diaphragm; its collapse obscures the right hemidiaphragm. RML collapse more often obscures the right heart border." },
+          { "id": "c", "text": "Loss of left heart border" },
+          { "id": "d", "text": "Loss of aortic knob" }
+        ],
+        "multi_select": false,
+        "shuffle_choices": true,
+        "concept_ids": ["sign.silhouette", "lobe.rll"]
+      },
+      {
+        "id": "rll-q2",
+        "stem": "Which lateral-view feature best supports right lower lobe volume loss?",
+        "choices": [
+          { "id": "a", "text": "Anterior displacement of the major fissure" },
+          { "id": "b", "text": "Posterior–inferior displacement of the major fissure with retrocardiac triangular opacity", "correct": true, "explain": "RLL collapse pulls the major fissure posteriorly/inferiorly and creates a wedge-like retrocardiac opacity." },
+          { "id": "c", "text": "Superior displacement of the minor fissure" },
+          { "id": "d", "text": "Diffuse interstitial thickening sparing the retrosternal space" }
+        ],
+        "multi_select": false,
+        "shuffle_choices": true,
+        "concept_ids": ["fissure.major", "pattern.retrocardiac_wedge"]
+      },
+      {
+        "id": "rll-q3",
+        "stem": "A common immediate cause of right lower lobe atelectasis in a postoperative patient is:",
+        "choices": [
+          { "id": "a", "text": "Pulmonary embolism with infarct" },
+          { "id": "b", "text": "Endobronchial mucus plugging", "correct": true, "explain": "Postoperative mucus plugging can obstruct a lobar bronchus, leading to rapid lobar collapse." },
+          { "id": "c", "text": "Alveolar proteinosis" },
+          { "id": "d", "text": "Bronchiectasis" }
+        ],
+        "multi_select": false,
+        "shuffle_choices": true,
+        "concept_ids": ["etiology.mucus_plug", "setting.postop"]
+      },
+      {
+        "id": "rll-q4",
+        "stem": "Which finding helps distinguish right middle lobe collapse from right lower lobe collapse on the PA view?",
+        "choices": [
+          { "id": "a", "text": "Right middle lobe collapse preserves the right heart border" },
+          { "id": "b", "text": "Right middle lobe collapse obscures the right heart border", "correct": true, "explain": "RML silhouette sign involves the right heart border, whereas RLL collapse more often obscures the right hemidiaphragm with the right heart border preserved." },
+          { "id": "c", "text": "Right lower lobe collapse obscures the right heart border" },
+          { "id": "d", "text": "Neither affects mediastinal silhouettes" }
+        ],
+        "multi_select": false,
+        "shuffle_choices": true,
+        "concept_ids": ["sign.silhouette", "lobe.rml_vs_rll"]
+      },
+      {
+        "id": "rll-q5",
+        "stem": "Which management steps are appropriate for persistent right lower lobe collapse? (Select all that apply.)",
+        "choices": [
+          { "id": "a", "text": "Pulmonary toilet and incentive spirometry", "correct": true, "explain": "First-line measures for lobar atelectasis." },
+          { "id": "b", "text": "Diagnostic and therapeutic bronchoscopy", "correct": true, "explain": "Indicated if collapse persists to remove mucus plug or rule out obstructing lesion." },
+          { "id": "c", "text": "Immediate chest tube placement", "correct": false, "explain": "Not indicated for uncomplicated lobar collapse without effusion or pneumothorax." },
+          { "id": "d", "text": "High-dose steroids as first line", "correct": false, "explain": "No role in routine atelectasis management." }
+        ],
+        "multi_select": true,
+        "shuffle_choices": true,
+        "concept_ids": ["plan.airway_clearance", "plan.bronchoscopy"]
+        }
+      ]
+    }
+  },
+
+  {
+    "id": "msk-003",
+    "title": "Case 3",
+    "subspecialty": "Musculoskeletal Radiology",
+    "tags": ["knee", "MRI"],
+    "images": [
+      "data/images/msk_knee_1.png",
+      "data/images/msk_knee_2.png"
+    ],
+    "boardPrompt": "A 28-year-old athlete presents with acute knee injury after pivoting.",
+    "expectedAnswer": "Diagnosis: Complete ACL tear. Key: fiber discontinuity, anterior tibial translation, pivot-shift bone bruising. Associated: MCL sprain, meniscal tears.",
+    "rubric": [
+      "names type of study (MRI knee)",
+      "names ACL tear",
+      "describes fiber discontinuity or abnormal ACL",
+      "mentions pivot-shift bone bruise pattern",
+      "notes anterior tibial translation",
+      "assesses menisci",
+      "mentions collateral ligaments"
+    ]
+  },
+  {
+  "id": "us-001",
+  "title": "Case 4",
+  "subspecialty": "Ultrasound",
+  "tags": ["ultrasound", "kidney", "calcification"],
+  "images": [
+    "data/images/gu_nephrocalcinosis_1.png",
+    "data/images/gu_nephrocalcinosis_2.png"
+  ],
+  "boardPrompt": "A 35-year-old patient is referred for evaluation of recurrent nephrolithiasis.",
+  "expectedAnswer": "Diagnosis: Medullary nephrocalcinosis. Key: echogenic medullary pyramids with shadowing on ultrasound; cortical sparing. Differential: primary hyperparathyroidism, medullary sponge kidney, distal (type 1) renal tubular acidosis, hypervitaminosis D, sarcoidosis. Management: address underlying metabolic cause; nephrology referral.",
+  "rubric": [
+    "names type of study (renal ultrasound)",
+    "names medullary nephrocalcinosis",
+    "describes echogenic renal pyramids",
+    "mentions posterior acoustic shadowing",
+    "notes cortical sparing",
+    "provides a short differential (e.g., hyperparathyroidism, medullary sponge kidney, distal RTA, hypervitaminosis D, sarcoidosis)",
+    "recommends further metabolic evaluation or nephrology referral"
+  ],
+  "differential": {
+    "items": [
+      { "label": "Primary hyperparathyroidism", "synonyms": ["hyperparathyroidism"] },
+      { "label": "Medullary sponge kidney" },
+      { "label": "Distal (type 1) renal tubular acidosis", "synonyms": ["distal RTA", "type 1 RTA"] },
+      { "label": "Hypervitaminosis D" },
+      { "label": "Sarcoidosis" }
+    ],
+    "min_required": 2
+  },
+    "mcqs": {
+      "shuffle_questions": false,
+      "questions": [
+        {
+          "id": "mn-q1",
+          "stem": "Which sonographic finding is most characteristic of medullary nephrocalcinosis?",
+          "choices": [
+            { "id": "a", "text": "Echogenic medullary pyramids with or without posterior acoustic shadowing", "correct": true, "explain": "Calcifications deposit in the renal medulla/pyramids, producing echogenic pyramids; shadowing may or may not be present depending on burden and equipment." },
+            { "id": "b", "text": "Diffuse increased cortical echogenicity", "correct": false, "explain": "This pattern is more typical of medical renal disease/CKD affecting the cortex, not medullary calcification." },
+            { "id": "c", "text": "Marked hydronephrosis", "correct": false, "explain": "Hydronephrosis reflects collecting system dilation/obstruction, not medullary calcium deposition." },
+            { "id": "d", "text": "Subcapsular (cortical) calcifications", "correct": false, "explain": "Cortical calcifications point away from medullary nephrocalcinosis." }
+          ],
+          "multi_select": false,
+          "shuffle_choices": true,
+          "concept_ids": ["dx.nephrocalcinosis", "finding.echogenic_pyramids"]
+        },
+        {
+          "id": "mn-q2",
+          "stem": "Which underlying conditions are classically associated with medullary nephrocalcinosis? (Select all that apply.)",
+          "choices": [
+            { "id": "a", "text": "Primary hyperparathyroidism", "correct": true, "explain": "Hypercalcemia/hypercalciuria promote medullary calcium deposition." },
+            { "id": "b", "text": "Distal renal tubular acidosis", "correct": true, "explain": "Distal RTA causes alkaline urine and hypocitraturia, favoring calcium precipitation in the medulla." },
+            { "id": "c", "text": "Medullary sponge kidney", "correct": true, "explain": "Ectatic collecting ducts predispose to stasis and calcification within the pyramids." },
+            { "id": "d", "text": "Alport syndrome", "correct": false, "explain": "Alport syndrome can cause cortical, not medullary, nephrocalcinosis." },
+            { "id": "e", "text": "Minimal change disease", "correct": false, "explain": "Glomerular diseases like MCD are not typical causes of medullary calcification." }
+          ],
+          "multi_select": true,
+          "shuffle_choices": true,
+          "concept_ids": ["etiology.hyperparathyroidism", "etiology.distal_rta", "etiology.msk_medullary_sponge"]
+        },
+        {
+          "id": "mn-q3",
+          "stem": "Which feature favors medullary nephrocalcinosis over isolated nephrolithiasis on ultrasound?",
+          "choices": [
+            { "id": "a", "text": "Multiple pyramids bilaterally show linear/bandlike increased echogenicity", "correct": true, "explain": "Nephrocalcinosis affects many pyramids, often bilaterally; stones are discrete foci." },
+            { "id": "b", "text": "A single discrete echogenic focus with clean acoustic shadowing in the ureter", "correct": false, "explain": "This describes a ureteral stone rather than diffuse medullary calcification." },
+            { "id": "c", "text": "Focal mural echogenicity of the bladder", "correct": false, "explain": "Unrelated to medullary calcification." },
+            { "id": "d", "text": "Absence of twinkle artifact on color Doppler", "correct": false, "explain": "Twinkle artifact commonly occurs behind calcifications in both stones and nephrocalcinosis." }
+          ],
+          "multi_select": false,
+          "shuffle_choices": true,
+          "concept_ids": ["finding.pattern_diffuse_vs_discrete", "artifact.twinkle"]
+        },
+        {
+          "id": "mn-q4",
+          "stem": "On color Doppler, which artifact is most commonly seen posterior to calcified foci?",
+          "choices": [
+            { "id": "a", "text": "Twinkle artifact", "correct": true, "explain": "Twinkle artifact is typical behind strongly reflecting calcified interfaces." },
+            { "id": "b", "text": "Mirror-image artifact", "correct": false, "explain": "Mirror artifact relates to strong specular reflectors like the diaphragm, not calcifications per se." },
+            { "id": "c", "text": "Comet-tail artifact", "correct": false, "explain": "A short reverberation artifact; classic for adenomyomatosis of the gallbladder, not renal medullary calcifications." },
+            { "id": "d", "text": "Refraction (edge) artifact", "correct": false, "explain": "Occurs at the margins of curved structures; not the hallmark finding here." }
+          ],
+          "multi_select": false,
+          "shuffle_choices": true,
+          "concept_ids": ["artifact.twinkle"]
+        },
+        {
+          "id": "mn-q5",
+          "stem": "A 35-year-old with ultrasound showing echogenic medullary pyramids and cortical sparing is otherwise stable. What is the most appropriate next step?",
+          "choices": [
+            { "id": "a", "text": "Immediate ureteroscopic lithotripsy", "correct": false, "explain": "Intervention is for obstructing stones, not diffuse medullary calcification." },
+            { "id": "b", "text": "No further workup is necessary", "correct": false, "explain": "Nephrocalcinosis warrants evaluation for a metabolic/structural cause." },
+            { "id": "c", "text": "Nephrology referral and targeted metabolic evaluation", "correct": true, "explain": "Management is directed at the underlying disorder (e.g., hyperparathyroidism, distal RTA)." },
+            { "id": "d", "text": "Empiric corticosteroids", "correct": false, "explain": "No role in medullary nephrocalcinosis without an immune/inflammatory indication." }
+          ],
+          "multi_select": false,
+          "shuffle_choices": true,
+          "concept_ids": ["plan.nephrology_referral", "plan.metabolic_workup"]
+        }
+      ]
+    }
+  },
+  {
+    "id": "us-002",
+    "title": "Case 5",
+    "subspecialty": "Ultrasound",
+  "tags": ["ultrasound", "scrotum", "Doppler", "epididymitis", "pyocele"],
+  "images": [
+    "data/images/us_epididymitis_1.png",
+    "data/images/us_epididymitis_2.png",
+    "data/images/us_epididymitis_3.png",
+    "data/images/us_epididymitis_4.png", 
+    "data/images/us_epididymitis_5.png"
+  ],
+  "boardPrompt": "A 75-year-old male presents with acute right scrotal pain and swelling, low-grade fever, and dysuria.",
+  "expectedAnswer": "Diagnosis: Acute right epididymitis with suspected pyocele (complex, multiseptated peritesticular fluid). Key findings: right epididymal enlargement and heterogeneous echotexture; marked hyperemia on color Doppler; multiseptated fluid collection consistent with pyocele; contralateral left epididymal tail appears normal for comparison. No sonographic features of torsion (testicular arterial/venous flow preserved). Management: contact the ordering provider and recommend urologic consultation and antibiotics.",
+  "rubric": [
+    "Names type of study (scrotal ultrasound)",
+    "names acute right epididymitis",
+    "describes right epididymal enlargement",
+    "mentions heterogeneous echotexture of the right epididymis",
+    "demonstrates hyperemia on color Doppler in the right epididymis",
+    "identifies a complex or multiseptated peritesticular fluid collection consistent with pyocele",
+    "compares with the normal left epididymal tail for side-to-side comparison",
+    "addresses torsion as unlikely given preserved or increased intratesticular flow",
+    "recommends contacting the ordering provider and urologic consultation with antibiotics"
+  ],
+  "differential": {
+    "items": [
+      { "label": "Epididymo-orchitis" },
+      { "label": "Testicular torsion" },
+      { "label": "Torsion of testicular appendage" },
+      { "label": "Epididymal or scrotal abscess" },
+      { "label": "Complex hydrocele / hematoceles" }
+    ],
+    "min_required": 1
+  }, 
+  "mcqs": {
+    "shuffle_questions": false,
+    "questions": [
+      {
+        "id": "q1",
+        "stem": "Which is the most likely diagnosis given the provided images and Doppler cine?",
+        "choices": [
+          { "id": "a", "text": "Right testicular torsion" },
+          { "id": "b", "text": "Right epididymitis with possible pyocele", "correct": true, "explain": "Hyperemic, enlarged heterogeneous epididymis + multiseptated peritesticular collection → pyocele." },
+          { "id": "c", "text": "Epididymal appendix torsion" },
+          { "id": "d", "text": "Simple hydrocele" }
+        ],
+        "multi_select": false,
+        "shuffle_choices": true,
+        "concept_ids": ["dx.epididymitis", "finding.hyperemia", "finding.multiseptated_fluid"]
+      },
+      {
+        "id": "q2",
+        "stem": "Which management is most appropriate?",
+        "choices": [
+          { "id": "a", "text": "Immediate manual detorsion" },
+          { "id": "b", "text": "Urologic consultation and antibiotics", "correct": true, "explain": "Infection pattern (not torsion). Antibiotics + urology; drainage if abscess/pyocele." },
+          { "id": "c", "text": "No treatment; observe" },
+          { "id": "d", "text": "Emergent orchiectomy" }
+        ],
+        "multi_select": false,
+        "shuffle_choices": false
+      },
+      {
+        "id": "q3",
+        "stem": "Which findings support pyocele? (Select all that apply.)",
+        "choices": [
+          { "id": "a", "text": "Multiseptated peritesticular collection", "correct": true, "explain": "Complex, septated fluid favors pyocele over simple hydrocele." },
+          { "id": "b", "text": "Marked epididymal hyperemia", "correct": true, "explain": "Supports infection—in context raises concern for complicated infection." },
+          { "id": "c", "text": "Uniform anechoic hydrocele" },
+          { "id": "d", "text": "Absent intratesticular arterial flow" }
+        ],
+        "multi_select": true,
+        "shuffle_choices": true
+      }
+    ]
+  }
+}, 
+{
+  "id": "us_adenomyosis_001",
+  "title": "Case 6",
+  "subspecialty": "Ultrasound",
+  "tags": ["uterus", "adenomyosis", "gynecology", "TVUS", "subendometrial cysts", "menorrhagia", "dysmenorrhea"],
+  "boardPrompt": "35-year-old female with progressive dysmenorrhea and heavy, prolonged menses.",
+  "expectedAnswer": "Findings are most consistent with adenomyosis. The uterus is notable for heterogeneous myometrium and multiple small subendometrial cysts near the junctional zone. There are subtle linear striations extending from the endometrium into the myometrium. The endometrium is not abnormally thickened. The uterus may be mildly globular. No discrete intramural mass or calcifications to suggest a focal fibroid. Correlate with symptoms; consider MRI if uncertain or for pre-procedural planning. Management may include hormonal therapy (e.g., LNG-IUD) depending on fertility considerations.",
+  "rubric": [
+    "Names type of study (pelvic ultrasound)",
+    "Identifies heterogeneous myometrium",
+    "Mentions subendometrial cysts near the junctional zone",
+    "Describes fan-shaped shadowing, venetian-blind shadowing, or linear striations",
+    "Differentiates from fibroid (no discrete mass, ill-defined borders)",
+    "Suggests appropriate next steps (symptom correlation, MRI if needed, medical therapy)"
+  ],
+  "media": [
+    {
+      "type": "image",
+      "src": "data/images/us_adenomyosis_0001.png",
+      "caption": "Transvaginal ultrasound of the uterus in the longitudinal plane"
+    },
+    {
+      "type": "video",
+      "src": "data/images/us_adenomyosis_cine.mp4",
+      "caption": "Transvaginal cine of the uterus in the longitudinal plane",
+      "autoplay": true,
+      "loop": true,
+      "muted": true
+    }
+  ],
+  "mcqs": {
+    "shuffle_questions": false,
+    "questions": [
+      {
+        "id": "q1",
+        "stem": "What is the most likely diagnosis based on this cine?",
+        "shuffle_choices": true,
+        "choices": [
+          { "id": "a", "text": "Diffuse adenomyosis", "correct": true, "explain": "Heterogeneous myometrium with subendometrial cysts and indistinct junctional zone are classic." },
+          { "id": "b", "text": "A single large myometrial fibroid", "correct": false, "explain": "Fibroids are typically discrete, well-circumscribed masses; cysts adjacent to the endometrium favor adenomyosis." },
+          { "id": "c", "text": "Endometrial polyp", "correct": false, "explain": "Polyps are focal endoluminal lesions; myometrial heterogeneity with cysts argues against this." },
+          { "id": "d", "text": "Focal myometrial abscess", "correct": false, "explain": "Abscess would be focal with inflammatory signs and clinical infection." }
+        ]
+      },
+      {
+        "id": "q2",
+        "stem": "Which ultrasound feature most specifically supports adenomyosis?",
+        "shuffle_choices": true,
+        "choices": [
+          { "id": "a", "text": "Subendometrial cysts", "correct": true, "explain": "Tiny cysts near the junctional zone are a classic feature." },
+          { "id": "b", "text": "Coarse shadowing from calcifications", "correct": false, "explain": "Calcifications suggest fibroids more than adenomyosis." },
+          { "id": "c", "text": "A well-circumscribed hypoechoic intramural mass", "correct": false, "explain": "That favors fibroid rather than adenomyosis." },
+          { "id": "d", "text": "Uniformly thin myometrium", "correct": false, "explain": "Adenomyosis often causes asymmetrical thickening or globular enlargement." }
+        ]
+      }
+    ]
+  }
+}
+
+]
