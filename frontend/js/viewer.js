@@ -153,33 +153,73 @@ function restoreCanvasInPlace(){
 }
 
 // ---------- public API ----------
+// 
 export function openViewer(caseObj){
-  currentCase = caseObj; currentIdx=0; assets = getAssets(caseObj);
+  // ===== CRITICAL: RESET EVERYTHING FIRST =====
+  
+  // Stop and clear any active video
+  stopVideo();
+  if (videoEl) {
+    videoEl.src = '';
+    videoEl.load(); // Force release of video resources
+  }
+  
+  // Restore canvas if video was showing
+  restoreCanvasInPlace();
+  
+  // Clear canvas completely
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Reset all state variables
+  currentCase = null;
+  currentIdx = 0;
+  assets = [];
+  img = null;
+  rawImg = null;
+  scale = 1;
+  panX = 0;
+  panY = 0;
+  bright = 0;
+  cont = 0;
+  isPanning = false;
+  
+  // Reset control sliders to default
+  if (zoomInput) zoomInput.value = 1;
+  if (brightInput) brightInput.value = 0;
+  if (contInput) contInput.value = 0;
+  
+  // ===== NOW SET UP NEW CASE =====
+  
+  currentCase = caseObj;
+  currentIdx = 0;
+  assets = getAssets(caseObj);
 
   // Clear transcript + feedback from previous case
-  //if (vTranscript) vTranscript.textContent = '';
   if (vTranscript) vTranscript.value = '';
-  if (vFeedback)   vFeedback.textContent   = '';
-  if (vScore)      vScore.textContent      = '–';
-  if (vLLM)        vLLM.textContent        = '';
+  if (vFeedback) vFeedback.textContent = '';
+  if (vScore) vScore.textContent = '–';
+  if (vLLM) vLLM.textContent = '';
 
   vTitle.textContent = caseObj.title;
   vMeta.textContent = caseObj.subspecialty || '';
   vBoardPrompt.textContent = caseObj.boardPrompt || '(no prompt)';
   vAns.textContent = caseObj.expectedAnswer || '(no expected answer)';
-  vRubric.textContent = Array.isArray(caseObj.rubric)&&caseObj.rubric.length
+  vRubric.textContent = Array.isArray(caseObj.rubric) && caseObj.rubric.length
     ? caseObj.rubric.map((r,i)=>`${i+1}. ${r}`).join('\n')
     : '(no rubric)';
 
   // Build thumbs (image or video)
-  vThumbs.innerHTML='';
-  assets.forEach((a,i)=>{
+  vThumbs.innerHTML = '';
+  assets.forEach((a, i) => {
     const t = document.createElement('div');
     t.className = 'thumb';
     const imgEl = document.createElement('img');
 
     if (a.type === 'image') {
       imgEl.src = a.src;
+      imgEl.crossOrigin = 'anonymous'; // IMPORTANT for CORS
     } else {
       imgEl.src = a.poster || 'data:image/svg+xml;utf8,' + encodeURIComponent(
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 60"><rect width="80" height="60" fill="#222"/><polygon points="30,20 58,30 30,40" fill="#fff"/></svg>'
@@ -189,16 +229,20 @@ export function openViewer(caseObj){
       badge.className = 'thumb-badge';
       t.appendChild(badge);
     }
-    if(i===0) t.classList.add('active');
+    if (i === 0) t.classList.add('active');
     imgEl.alt = a.caption || (a.type === 'video' ? 'video' : 'image');
     t.appendChild(imgEl);
-    t.onclick = ()=>{ currentIdx=i; selectThumb(); loadAsset(); };
+    t.onclick = () => { currentIdx = i; selectThumb(); loadAsset(); };
     vThumbs.appendChild(t);
   });
 
   resetView();
   viewer.classList.add('show');
-  loadAsset();
+  
+  // Small delay to ensure canvas is ready
+  setTimeout(() => {
+    loadAsset();
+  }, 50);
 }
 
 export function closeViewer(){ stopVideo(); viewer.classList.remove('show'); }
@@ -288,7 +332,26 @@ async function toProcessed(image, b, c){
   const out = new Image(); out.src = off.toDataURL('image/png'); await out.decode(); return out;
 }
 
-function loadImg(src){ return new Promise((res,rej)=>{ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>res(im); im.onerror=rej; im.src=src; }); }
+function loadImg(src) {
+  return new Promise((res, rej) => {
+    const im = new Image();
+    // CRITICAL: Set crossOrigin BEFORE src
+    im.crossOrigin = 'anonymous';
+    
+    im.onload = () => {
+      console.log('✓ Image loaded:', src);
+      res(im);
+    };
+    
+    im.onerror = (e) => {
+      console.error('✗ Image failed:', src, e);
+      rej(e);
+    };
+    
+    // Set src LAST
+    im.src = src;
+  });
+}
 
 // ---------- video helpers ----------
 function stopVideo(){

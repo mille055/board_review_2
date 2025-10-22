@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Admin - Radiology Case Conference</title>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <style>
+    .admin-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    .form-section {
+      background: var(--panel);
+      border: 1px solid var(--muted);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      color: var(--text-dim);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 10px;
+      background: #0f1013;
+      border: 1px solid var(--muted);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+    }
+    .form-group textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+    .upload-area {
+      border: 2px dashed var(--muted);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .upload-area:hover {
+      border-color: var(--accent);
+      background: rgba(110, 168, 254, 0.05);
+    }
+    .upload-area.dragover {
+      border-color: var(--accent);
+      background: rgba(110, 168, 254, 0.1);
+    }
+    .file-input {
+      display: none;
+    }
+    .uploaded-files {
+      margin-top: 15px;
+    }
+    .uploaded-file {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px;
+      background: #0f1013;
+      border: 1px solid var(--muted);
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .uploaded-file img {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    .btn-danger {
+      background: var(--bad);
+      color: white;
+    }
+    .rubric-list {
+      list-style: none;
+      padding: 0;
+    }
+    .rubric-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .rubric-item input {
+      flex: 1;
+    }
+    .status-message {
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+    .status-message.success {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid var(--ok);
+      color: var(--ok);
+    }
+    .status-message.error {
+      background: rgba(239, 83, 80, 0.1);
+      border: 1px solid var(--bad);
+      color: var(--bad);
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <div class="admin-header">
+      <div>
+        <h1>Admin - Create New Case</h1>
+        <p style="color: var(--text-dim)">Add cases to the Case Conference</p>
+      </div>
+      <div style="display: flex; gap: 10px;">
+        <a href="/" class="btn ghost">Back to App</a>
+        <button id="logoutBtn" class="btn ghost">Logout</button>
+      </div>
+    </div>
+
+    <div id="statusMessage"></div>
+
+    <form id="caseForm">
+      <!-- Basic Info -->
+      <div class="form-section">
+        <h3>Basic Information</h3>
+        
+        <!-- MOVED UP: Subspecialty first -->
+        <div class="form-group">
+          <label for="subspecialty">Subspecialty * (Select first)</label>
+          <select id="subspecialty" required>
+            <option value="">Select subspecialty...</option>
+            <option value="Gastrointestinal Radiology">Gastrointestinal Radiology</option>
+            <option value="Thoracic Radiology">Thoracic Radiology</option>
+            <option value="Musculoskeletal Radiology">Musculoskeletal Radiology</option>
+            <option value="Neuroradiology">Neuroradiology</option>
+            <option value="Ultrasound">Ultrasound</option>
+            <option value="Genitourinary Radiology">Genitourinary Radiology</option>
+            <option value="Breast Imaging">Breast Imaging</option>
+            <option value="Pediatric Radiology">Pediatric Radiology</option>
+            <option value="Nuclear Medicine">Nuclear Medicine</option>
+            <option value="Interventional Radiology">Interventional Radiology</option>
+          </select>
+          <small style="color: var(--text-dim)">Select this first to auto-generate Case ID</small>
+        </div>
+
+        <div class="form-group">
+          <label for="caseId">Case ID * (Auto-suggested)</label>
+          <input type="text" id="caseId" required placeholder="e.g., gi-001, thorax-002">
+          <small style="color: var(--text-dim)">Unique identifier (lowercase, dashes only) - auto-filled after selecting subspecialty</small>
+        </div>
+
+        <div class="form-group">
+          <label for="title">Title * (Auto-suggested)</label>
+          <input type="text" id="title" required placeholder="e.g., Case 1">
+          <small style="color: var(--text-dim)">Auto-filled after selecting subspecialty</small>
+        </div>
+
+        <div class="form-group">
+          <label for="tags">Tags (comma-separated)</label>
+          <input type="text" id="tags" placeholder="e.g., abdomen, RLQ pain, emergency">
+        </div>
+      </div>
+
+      <!-- Images -->
+      <div class="form-section">
+        <h3>Images *</h3>
+        
+        <div class="upload-area" id="imageUploadArea">
+          <input type="file" id="imageInput" class="file-input" accept="image/*" multiple>
+          <p>Click or drag images here to upload</p>
+          <small style="color: var(--text-dim)">PNG, JPG, JPEG supported</small>
+        </div>
+
+        <div id="uploadedImages" class="uploaded-files"></div>
+      </div>
+
+      <!-- Videos (Optional) -->
+      <div class="form-section">
+        <h3>Videos (Optional)</h3>
+        
+        <div class="upload-area" id="videoUploadArea">
+          <input type="file" id="videoInput" class="file-input" accept="video/*">
+          <p>Click or drag video here to upload</p>
+          <small style="color: var(--text-dim)">MP4, MOV supported</small>
+        </div>
+
+        <div id="uploadedVideos" class="uploaded-files"></div>
+      </div>
+
+      <!-- Clinical Info -->
+      <div class="form-section">
+        <h3>Clinical Information</h3>
+
+        <div class="form-group">
+          <label for="boardPrompt">Clinical History *</label>
+          <textarea id="boardPrompt" required placeholder="e.g., A 45-year-old male presents with..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="expectedAnswer">Expected Answer *</label>
+          <textarea id="expectedAnswer" required placeholder="Diagnosis, key findings, differential, management..."></textarea>
+        </div>
+      </div>
+
+      <!-- Rubric -->
+      <div class="form-section">
+        <h3>Rubric (Grading Criteria) *</h3>
+        
+        <ul id="rubricList" class="rubric-list">
+          <li class="rubric-item">
+            <input type="text" placeholder="e.g., names study type" class="rubric-point">
+            <button type="button" class="btn ghost" onclick="removeRubricPoint(this)">Remove</button>
+          </li>
+        </ul>
+        
+        <button type="button" class="btn ghost" id="addRubricBtn">+ Add Rubric Point</button>
+      </div>
+
+      <!-- References -->
+      <div class="form-section">
+        <h3>References (Optional)</h3>
+        
+        <div class="upload-area" id="referenceUploadArea">
+          <input type="file" id="referenceInput" class="file-input" accept="application/pdf" multiple>
+          <p>Click or drag PDFs here to upload</p>
+          <small style="color: var(--text-dim)">Reference PDFs for this case</small>
+        </div>
+
+        <div id="uploadedReferences" class="uploaded-files"></div>
+      </div>
+
+      <!-- Submit -->
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" class="btn ghost" onclick="resetForm()">Reset</button>
+        <button type="submit" class="btn" id="submitBtn">Create Case</button>
+      </div>
+    </form>
+  </div>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

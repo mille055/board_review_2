@@ -5,9 +5,9 @@
     "subspecialty": "Gastrointestinal Radiology",
     "tags": ["abdomen", "RLQ pain"],
     "images": [
-      "https://cm-boards-cases.s3.amazonaws.com/cases/gi-001/image-1.png",
-      "https://cm-boards-cases.s3.amazonaws.com/cases/gi-001/image-2.png",
-      "https://cm-boards-cases.s3.amazonaws.com/cases/gi-001/image-3.png"
+      "https://cm-boards-cases.s3.amazonaws.com/cases/gi-001/image-1.png?v=4",
+      "https://cm-boards-cases.s3.amazonaws.com/cases/gi-001/image-2.png?v=4",
+      "https://cm-boards-cases.s3.amazonaws.com/cases/gi-001/image-3.png?v=4"
     ],
     "boardPrompt": "You are evaluating a 23-year-old presenting with 24 hours of right lower quadrant abdominal pain, fever, and mild leukocytosis.",
     "expectedAnswer": "Diagnosis: Acute appendicitis. Key: enlarged appendix, periappendiceal stranding and free fluid, +/- appendicolith; assess perforation/abscess. Management: urgent surgical consult.",

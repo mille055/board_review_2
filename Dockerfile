@@ -18,6 +18,7 @@ COPY backend/ /app/backend/
 
 # Copy frontend to nginx web root
 COPY frontend/index.html /usr/share/nginx/html/
+COPY frontend/admin.html /usr/share/nginx/html/
 COPY frontend/login.html /usr/share/nginx/html/
 COPY frontend/css/ /usr/share/nginx/html/css/
 COPY frontend/js/ /usr/share/nginx/html/js/

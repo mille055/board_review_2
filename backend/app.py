@@ -3,7 +3,7 @@ import os, time, json, re
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any, Literal
 
-from fastapi import FastAPI, HTTPException, Depends, Query, Request, Header
+from fastapi import FastAPI, HTTPException, Depends, Query, Request, Header, UploadFile, File, Form
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel, EmailStr, Field
@@ -653,3 +653,174 @@ async def s3_presign(
         except Exception as e:
             raise HTTPException(500, f"S3 error: {e}")
         return {"url": url, "method": "GET"}
+# =============================
+# ADMIN ROUTES
+# =============================
+from fastapi import UploadFile, File, Form
+
+def require_admin_user(identity: str = Depends(current_identity)):
+    """Check if user is admin"""
+    require_admin(identity)  # reuse existing function
+    return identity
+
+@app.post("/api/admin/upload-image")
+async def admin_upload_image(
+    case_id: str = Form(...),
+    file: UploadFile = File(...),
+    identity: str = Depends(require_admin_user)
+):
+    """Upload an image for a case to S3"""
+    
+    if not S3_BUCKET:
+        raise HTTPException(400, "S3_BUCKET not configured")
+    
+    if not file.content_type or not file.content_type.startswith('image/'):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    file_ext = file.filename.split('.')[-1].lower()
+    timestamp = int(time.time())
+    filename = f"image-{timestamp}.{file_ext}"
+    s3_key = f"cases/{case_id}/{filename}"
+    
+    try:
+        s3_client.upload_fileobj(
+            file.file,
+            S3_BUCKET,
+            s3_key,
+            ExtraArgs={
+                'ContentType': file.content_type,
+                'CacheControl': 'max-age=31536000'
+            }
+        )
+        
+        url = f"https://{S3_BUCKET}.s3.amazonaws.com/{s3_key}"
+        return {"status": "success", "url": url, "filename": filename, "s3_key": s3_key}
+        
+    except Exception as e:
+        log.exception("Image upload failed")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@app.post("/api/admin/upload-video")
+async def admin_upload_video(
+    case_id: str = Form(...),
+    file: UploadFile = File(...),
+    identity: str = Depends(require_admin_user)
+):
+    """Upload a video for a case to S3"""
+    
+    if not S3_BUCKET:
+        raise HTTPException(400, "S3_BUCKET not configured")
+    
+    if not file.content_type or not file.content_type.startswith('video/'):
+        raise HTTPException(status_code=400, detail="File must be a video")
+    
+    file_ext = file.filename.split('.')[-1].lower()
+    timestamp = int(time.time())
+    filename = f"video-{timestamp}.{file_ext}"
+    s3_key = f"cases/{case_id}/{filename}"
+    
+    try:
+        s3_client.upload_fileobj(
+            file.file,
+            S3_BUCKET,
+            s3_key,
+            ExtraArgs={
+                'ContentType': file.content_type,
+                'CacheControl': 'max-age=31536000'
+            }
+        )
+        
+        url = f"https://{S3_BUCKET}.s3.amazonaws.com/{s3_key}"
+        return {"status": "success", "url": url, "filename": filename, "s3_key": s3_key}
+        
+    except Exception as e:
+        log.exception("Video upload failed")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@app.post("/api/admin/upload-reference")
+async def admin_upload_reference(
+    case_id: str = Form(...),
+    file: UploadFile = File(...),
+    identity: str = Depends(require_admin_user)
+):
+    """Upload a reference PDF to S3"""
+    
+    if not S3_BUCKET:
+        raise HTTPException(400, "S3_BUCKET not configured")
+    
+    if file.content_type != 'application/pdf':
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+    
+    safe_filename = file.filename.replace(' ', '-').lower()
+    s3_key = f"references/{case_id}/{safe_filename}"
+    
+    try:
+        s3_client.upload_fileobj(
+            file.file,
+            S3_BUCKET,
+            s3_key,
+            ExtraArgs={
+                'ContentType': 'application/pdf',
+                'ContentDisposition': f'inline; filename="{file.filename}"',
+                'CacheControl': 'max-age=31536000'
+            }
+        )
+        
+        url = f"https://{S3_BUCKET}.s3.amazonaws.com/{s3_key}"
+        return {"status": "success", "url": url, "filename": safe_filename, "s3_key": s3_key}
+        
+    except Exception as e:
+        log.exception("Reference upload failed")
+        raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+@app.post("/api/admin/cases")
+async def admin_create_case(
+    body: Case,
+    identity: str = Depends(require_admin_user)
+):
+    """Create a new case (admin only)"""
+    
+    case_dict = body.dict()
+    case_dict['created_at'] = int(time.time() * 1000)
+    case_dict['updated_at'] = int(time.time() * 1000)
+    case_dict['active'] = True
+    case_dict['created_by'] = identity
+    
+    if USE_MONGO:
+        case_dict['_id'] = body.id
+        try:
+            await db.cases.insert_one(case_dict)
+        except Exception as e:
+            log.exception("Failed to insert case")
+            raise HTTPException(500, f"Database error: {e}")
+    else:
+        items = _read_cases_file()
+        # Check for duplicate
+        if any(x.get('id') == body.id for x in items):
+            raise HTTPException(400, f"Case {body.id} already exists")
+        items.append(case_dict)
+        _write_cases_file(items)
+    
+    return {"status": "success", "case_id": body.id}
+
+@app.get("/api/admin/cases")
+async def admin_list_cases(
+    include_inactive: bool = False,
+    identity: str = Depends(require_admin_user)
+):
+    """List all cases including metadata (admin only)"""
+    
+    if USE_MONGO:
+        query = {} if include_inactive else {"active": True}
+        cursor = db.cases.find(query).sort("created_at", -1)
+        cases = await cursor.to_list(length=1000)
+        for c in cases:
+            if '_id' in c:
+                c['id'] = str(c['_id'])
+                del c['_id']
+        return cases
+    else:
+        items = _read_cases_file()
+        if not include_inactive:
+            items = [x for x in items if x.get('active', True)]
+        return items
