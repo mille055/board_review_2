@@ -1,6 +1,7 @@
-const API_BASE = '/api';  // Nginx proxies this to the backend inside the container
+const API_BASE = '';  // Nginx proxies this to the backend inside the container
 
 export const CONFIG = {
+  API_BASE: '', 
   CASES_URL: 'data/cases.json',     // later: /api/cases
   FEEDBACK_API: `${API_BASE}/feedback`,    // now points to backend
   MCQ_CHAT_API: `${API_BASE}/mcq/chat`,

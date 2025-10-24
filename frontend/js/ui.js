@@ -2,7 +2,6 @@ import { SUBS, CONFIG } from './config.js';
 import { getAll, setCases } from './store.js';
 import { openViewer as openViewerBase } from './viewer.js';
 import { toggleMic, getTranscript } from './speech.js';
-//import { pasteTranscript } from './speech.js';
 import { gradeHeuristic, heuristicFeedback, buildLLMPayload, letter } from './grade.js';
 import { recordAttempt, getStats } from './progress.js';
 
@@ -15,7 +14,7 @@ const vScore    = document.getElementById('vScore');
 const vLLM      = document.getElementById('vLLM');
 
 // ===== Mode (oral | mcq) =====
-let mode = (localStorage.getItem('mode') || 'oral'); // 'oral' default
+let mode = (localStorage.getItem('mode') || 'oral');
 
 /* ---------- Local filter state ---------- */
 let activeSubs = new Set();
@@ -27,7 +26,6 @@ function setToggleChecked(on){
   if (a) a.checked = !!on;
 }
 
-// Pick a thumbnail: prefer media image/poster, else first images[] item
 function getThumbSrc(c){
   if (Array.isArray(c.media) && c.media.length){
     for (const m of c.media){
@@ -112,7 +110,6 @@ function escapeWithBr(s){
 
 /* ---------- Public init ---------- */
 export function initUI(){
-  // Build chips
   const chipEls=[];
   SUBS.forEach(s=>{
     const c = document.createElement('div');
@@ -126,7 +123,6 @@ export function initUI(){
     chipEls.push({el:c, name:s});
   });
 
-  // All / None
   document.getElementById('subsAll').onclick = ()=>{
     activeSubs = new Set(SUBS);
     chipEls.forEach(x=>x.el.classList.add('active'));
@@ -138,7 +134,6 @@ export function initUI(){
     render();
   };
 
-  // Search
   document.getElementById('q').addEventListener('input', e=>{
     queryStr = (e.target.value || '').trim().toLowerCase();
     render();
@@ -149,7 +144,6 @@ export function initUI(){
     render();
   };
 
-  // Randoms
   document.getElementById('randomOne').onclick=()=>{
     const c = randomPick(getFiltered());
     if(!c) return alert('No cases loaded. Use "Load Samples" or "Import JSON".');
@@ -162,7 +156,6 @@ export function initUI(){
     alert("Random set:\n\n" + shuffle([...list]).slice(0,n).map(c=>`• ${c.title} — ${c.subspecialty}`).join('\n'));
   };
 
-  // Import / Load samples
   document.getElementById('importBtn').onclick=()=>document.getElementById('fileInput').click();
   document.getElementById('fileInput').addEventListener('change', async (e)=>{
     const file = e.target.files[0]; if(!file) return;
@@ -173,28 +166,97 @@ export function initUI(){
     }catch{ alert('Invalid JSON'); }
   });
 
-  document.getElementById('loadSamples').onclick = ()=>{
-    fetch('data/cases.json', {cache:'no-store'})
-      .then(r=>r.json())
-      .then(arr=>{ setCases(arr); render(); alert(`Loaded ${arr.length} sample cases ✔`); });
+  // Add this after the initUI function
+  async function refreshSignedUrls() {
+    const token = localStorage.getItem('jwt');
+    if (!token) return;
+    
+    const cases = getAll();
+    if (!cases.length) return;
+    
+    console.log('Refreshing signed URLs for', cases.length, 'cases...');
+    
+    const refreshedCases = await Promise.all(
+      cases.map(async (c) => {
+        if (c.images && c.images.length > 0 && c.images[0].includes('s3.amazonaws.com')) {
+          try {
+            const response = await fetch(`${CONFIG.API_BASE}/api/cases/${c.id}/signed`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (response.ok) {
+              return await response.json();
+            }
+          } catch (err) {
+            console.warn(`Failed to refresh signed URLs for ${c.id}`);
+          }
+        }
+        return c;
+      })
+    );
+    
+    setCases(refreshedCases);
+    render();
+    console.log('✓ Signed URLs refreshed');
+  }
+
+  // UPDATED: Load cases from API with signed URLs
+  document.getElementById('loadSamples').onclick = async ()=>{
+    try {
+      const token = localStorage.getItem('jwt');
+      if (!token) {
+        alert('Please log in first to load cases.');
+        return;
+      }
+      
+      // Fetch all cases from the API
+      const response = await fetch(`${CONFIG.API_BASE}/api/cases`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load cases: ${response.status}`);
+      }
+      
+      const cases = await response.json();
+      
+      // Now fetch signed URLs for each case
+      const casesWithSignedUrls = await Promise.all(
+        cases.map(async (c) => {
+          if (c.images && c.images.length > 0 && c.images[0].includes('s3.amazonaws.com')) {
+            try {
+              const signedResponse = await fetch(`${CONFIG.API_BASE}/api/cases/${c.id}/signed`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              
+              if (signedResponse.ok) {
+                return await signedResponse.json();
+              }
+            } catch (err) {
+              console.warn(`Failed to get signed URLs for ${c.id}:`, err);
+            }
+          }
+          return c;
+        })
+      );
+      
+      setCases(casesWithSignedUrls);
+      render();
+      alert(`Loaded ${casesWithSignedUrls.length} cases ✔`);
+    } catch (error) {
+      console.error('Failed to load cases:', error);
+      alert(`Failed to load cases: ${error.message}`);
+    }
   };
 
-  // Viewer actions (oral mode widgets live in oralPane)
   document.getElementById('vMicBtn')?.addEventListener('click', toggleMic);
-  //document.getElementById('vPasteBtn')?.addEventListener('click', pasteTranscript);
 
-  // 🚀 Make this handler async to allow 'await' inside
-  // document.getElementById('gradeBtn')?.addEventListener('click', async ()=>{
-  //   const tr = getTranscript();
-  //   if(!tr) return alert('No transcript. Use mic or paste text.');
-  //   const caseObj = window.__currentCaseForGrading; // set when opening viewer
-  //   if(!caseObj) return;
   document.getElementById('gradeBtn')?.addEventListener('click', async ()=>{
-    const transcriptEl = document.getElementById('vTranscript'); // Get element directly
-    const tr = transcriptEl ? transcriptEl.value.trim() : ''; // Read .value
+    const transcriptEl = document.getElementById('vTranscript');
+    const tr = transcriptEl ? transcriptEl.value.trim() : '';
   
-    console.log('Transcript element:', transcriptEl); // Debug line
-    console.log('Transcript value:', tr); // Debug line
+    console.log('Transcript element:', transcriptEl);
+    console.log('Transcript value:', tr);
   
     if(!tr) return alert('No transcript. Use mic or type your response.');
   
@@ -214,7 +276,6 @@ export function initUI(){
     const payload = buildLLMPayload({caseObj, transcript:tr, heur});
     if (vLLM) vLLM.textContent = JSON.stringify(payload, null, 2);
 
-    // Optional LLM call (skipped unless you wire a backend)
     if (CONFIG?.FEEDBACK_MODE && CONFIG.FEEDBACK_MODE !== 'heuristic') {
       try {
         const mod = await import('./grade.js');
@@ -230,7 +291,6 @@ export function initUI(){
       }
     }
 
-    // Progress tracking
     recordAttempt({
       caseId: caseObj.id,
       subspecialty: caseObj.subspecialty || 'Unknown',
@@ -242,24 +302,44 @@ export function initUI(){
     updateCounts();
   });
 
-  // Bridge to viewer (and MCQ renderer)
-  window.openViewer = (c)=>{
-    window.__currentCaseForGrading = c;
-    openViewerBase(c);
+  // Bridge to viewer (and MCQ renderer) - WITH SIGNED URLs
+  window.openViewer = async (c)=>{
+    console.log('Opening case:', c.id);
+    
+    // Fetch case with signed URLs if S3 images are present
+    let caseToOpen = c;
+    if (c.images && c.images.length > 0 && c.images[0].includes('s3.amazonaws.com')) {
+        try {
+            const token = localStorage.getItem('jwt');
+            const response = await fetch(`${CONFIG.API_BASE}/api/cases/${c.id}/signed`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (response.ok) {
+                caseToOpen = await response.json();
+                console.log('✓ Loaded case with signed URLs');
+            } else {
+                console.warn('Failed to get signed URLs, using original URLs');
+            }
+        } catch (error) {
+            console.error('Failed to load signed URLs:', error);
+            // Fall back to original case
+        }
+    }
+    
+    window.__currentCaseForGrading = caseToOpen;
+    openViewerBase(caseToOpen);
 
-    // if user left the app in MCQ mode but this case has no MCQs, fall back to oral
-    if (mode === 'mcq' && !(c?.mcqs?.questions?.length)) {
+    if (mode === 'mcq' && !(caseToOpen?.mcqs?.questions?.length)) {
       mode = 'oral';
       localStorage.setItem('mode', mode);
     }
 
-    // reflect mode in UI + render content
     setToggleChecked(mode === 'mcq');
     renderMode();
-    if (mode === 'mcq') renderMCQs(c); else clearMCQs();
+    if (mode === 'mcq') renderMCQs(caseToOpen); else clearMCQs();
   };
 
-  // LLM chat in-viewer
   bindLLMChatUI();
   document.getElementById('llmAskBtnOral')?.addEventListener('click', ()=>{
     const c = window.__currentCaseForGrading;
@@ -269,7 +349,8 @@ export function initUI(){
 
   bindModeToggle();
   renderMode();
-  render(); // initial
+  render();
+  refreshSignedUrls();
 }
 
 /* ---------- Render grid ---------- */
@@ -317,7 +398,7 @@ function clearMCQs(){
 
 function renderMCQs(caseObj){
   const pane = document.getElementById('mcqPane');
-  if (!pane) return; // optional container
+  if (!pane) return;
   pane.innerHTML = '';
 
   const spec = caseObj.mcqs;
@@ -326,52 +407,34 @@ function renderMCQs(caseObj){
     return;
   }
 
-  const qs = spec.shuffle_questions ? [...spec.questions].sort(()=>Math.random()-0.5) : spec.questions;
-
-  const form = document.createElement('form');
-  form.id = 'mcqForm';
-  form.className = 'mcq-form';
-
-  qs.forEach((q, idx)=>{
-    const isMulti = q.multi_select || (q.choices.filter(c=>c.correct).length > 1);
-    const group = `q_${q.id || idx}`;
-
-    const card = document.createElement('div');
-    card.className = 'mcq-card';
-
-    const stem = document.createElement('div');
-    stem.className = 'mcq-stem';
-    stem.textContent = `${idx+1}. ${q.stem}`;
+  const form = document.createElement('form'); form.id = 'mcqForm';
+  spec.questions.forEach((q, qIdx)=>{
+    const card = document.createElement('div'); card.className = 'mcq-card';
+    const stem = document.createElement('div'); stem.className = 'mcq-stem';
+    stem.textContent = `${qIdx+1}. ${q.stem}`;
     card.appendChild(stem);
 
-    const choices = q.shuffle_choices ? [...q.choices].sort(()=>Math.random()-0.5) : q.choices;
-    choices.forEach(ch=>{
-      const id = `${group}_${ch.id}`;
-      const label = document.createElement('label');
-      label.className = 'mcq-choice';
-
+    q.choices.forEach(ch=>{
+      const lbl = document.createElement('label'); lbl.className = 'mcq-choice';
       const inp = document.createElement('input');
-      inp.type = isMulti ? 'checkbox' : 'radio';
-      inp.name = group;
+      inp.type = q.multi_select ? 'checkbox' : 'radio';
+      inp.name = 'q'+qIdx;
       inp.value = ch.id;
-      inp.id = id;
-
+      lbl.appendChild(inp);
       const txt = document.createElement('span'); txt.textContent = ch.text;
-      label.appendChild(inp); label.appendChild(txt);
-      card.appendChild(label);
+      lbl.appendChild(txt);
+      card.appendChild(lbl);
     });
 
-    const expl = document.createElement('div');
-    expl.className = 'mcq-explain hidden';
+    const expl = document.createElement('div'); expl.className = 'mcq-explain hidden';
     card.appendChild(expl);
-
     form.appendChild(card);
   });
 
-  const actions = document.createElement('div');
-  actions.className = 'mcq-actions';
-  const btn = document.createElement('button'); btn.type = 'submit'; btn.textContent = 'Check answers';
-  actions.appendChild(btn);
+  const actions = document.createElement('div'); actions.className = 'mcq-actions';
+  const submit = document.createElement('button'); submit.type = 'submit';
+  submit.className = 'btn'; submit.textContent = 'Grade';
+  actions.appendChild(submit);
 
   const why = document.createElement('button');
   why.type = 'button';
@@ -441,10 +504,10 @@ const chatDOM = {
 };
 
 let chatState = {
-  kind: 'mcq',         // 'mcq' | 'oral'
+  kind: 'mcq',
   caseObj: null,
-  qIndex: null,        // for MCQ
-  messages: []         // {role:'system'|'user'|'assistant', content}
+  qIndex: null,
+  messages: []
 };
 
 function bindLLMChatUI(){
@@ -457,26 +520,10 @@ function bindLLMChatUI(){
   chatDOM.input?.addEventListener('keydown', (e) => {
     const k = e.key;
     if (
-      k === ' ' || e.code === 'Space' || k === 'Spacebar' ||        // Space
-      k === 'ArrowLeft' || k === 'ArrowRight' ||                    // Arrows
-      k === 'PageUp' || k === 'PageDown' || k === 'Home' || k === 'End'
-    ) {
-      // DO NOT preventDefault — we want spaces/caret moves in the field.
-      e.stopPropagation();  // just keep it from reaching global handlers
-    }
-  }, { capture: true });
-
-
-  // Shield typing from global hotkeys: allow default in the input,
-  // but stop the event from reaching document/window handlers.
-  chatDOM.input?.addEventListener('keydown', (e) => {
-    const k = e.key;
-    if (
       k === ' ' || e.code === 'Space' || k === 'Spacebar' ||
       k === 'ArrowLeft' || k === 'ArrowRight' ||
       k === 'PageUp' || k === 'PageDown' || k === 'Home' || k === 'End'
     ) {
-      // Do NOT preventDefault here—we want the character/caret to update.
       e.stopPropagation();
     }
   }, { capture: true });
@@ -497,7 +544,6 @@ function renderChat(){
   scrollChatToBottom();
 }
 
-/* Context helpers */
 function getCurrentMCQContext(){
   const pane = document.getElementById('mcqPane');
   const form = pane?.querySelector('#mcqForm');
@@ -516,7 +562,6 @@ function getOralContext(){
   return { transcript: tr };
 }
 
-/* Open chat from either mode */
 export function openLLMChat(caseObj, kind='mcq'){
   if (!chatDOM.panel) return;
 
@@ -561,7 +606,6 @@ async function onLLMSend(){
   chatDOM.input.value = '';
   renderChat();
 
-  // temporary typing bubble
   chatState.messages.push({ role: 'assistant', content: '…' });
   renderChat();
 
@@ -569,7 +613,7 @@ async function onLLMSend(){
     const reply = await callLLMChatAPI(chatState);
     chatState.messages.splice(-1, 1, { role: 'assistant', content: reply || '(no reply)' });
   } catch (e) {
-    chatState.messages.splice(-1, 1, { role: 'assistant', content: `Sorry—couldn’t get a response (${e?.message || e}).` });
+    chatState.messages.splice(-1, 1, { role: 'assistant', content: `Sorry—couldn't get a response (${e?.message || e}).` });
   } finally {
     renderChat();
   }
@@ -598,24 +642,9 @@ async function callLLMChatAPI(state){
     messages: state.messages.filter(m => m.role !== 'system')
   };
 
-  // Prefer dedicated chat API, else fall back to FEEDBACK_API
   const url = (CONFIG?.MCQ_CHAT_API || CONFIG?.FEEDBACK_API || '').trim();
   if (!url) throw new Error('No API configured (MCQ_CHAT_API / FEEDBACK_API).');
 
-  // const headers = {
-  //   'Content-Type': 'application/json',
-  //   ...(CONFIG?.API_KEY ? {'x-api-key': CONFIG.API_KEY} : {}),
-  //   ...(CONFIG?.JWT ? { 'Authorization': `Bearer ${CONFIG.JWT}` } : {})
-  // };
-
-  // const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(payload) });
-  // let data = null; try { data = await res.json(); } catch {}
-  // if (!res.ok) {
-  //   const msg = (data && (data.detail || data.error || data.message)) || `${res.status} ${res.statusText}`;
-  //   throw new Error(msg);
-  // }
-  // const text = (data && (data.reply || data.message || data.feedback || data.explanation)) || '';
-  // return (typeof text === 'string' && text.trim()) ? text.trim() : '(empty reply)';
   const token = localStorage.getItem('jwt');
   const headers = {
     'Content-Type': 'application/json'
@@ -637,5 +666,4 @@ async function callLLMChatAPI(state){
   return (typeof text === 'string' && text.trim()) ? text.trim() : '(empty reply)';
 }
 
-/* ---------- Utils ---------- */
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }

@@ -53,11 +53,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_TTL_MIN", "1440"))
 ADMIN_EMAILS = {e.strip().lower() for e in os.getenv("ADMIN_EMAILS", "").split(",") if e.strip()}
 
 # Auth modes: off | apikey | jwt (default)
-# normalize so "api_key" and "apikey" both work
 AUTH_MODE = os.getenv("AUTH_MODE", "jwt").lower().replace("_", "")
 API_KEY = os.getenv("API_KEY", "")
 
-# Password hashing (if you use /auth endpoints)
+# Password hashing
 pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_pw(p: str) -> str: return pwd_ctx.hash(p)
 def verify_pw(p: str, h: str) -> bool: return pwd_ctx.verify(p, h)
@@ -77,7 +76,6 @@ def _decode_jwt(token: str) -> str:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 async def current_identity(request: Request, x_api_key: str = Header(default=None)) -> str:
-    # Let CORS preflight pass through without auth checks
     if request.method == "OPTIONS":
         return "preflight@cors"
 
@@ -89,7 +87,6 @@ async def current_identity(request: Request, x_api_key: str = Header(default=Non
             return "demo@apikey"
         raise HTTPException(status_code=401, detail="Invalid API key")
 
-    # JWT mode (default)
     auth = request.headers.get("authorization") or request.headers.get("Authorization")
     if not auth or not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing bearer token")
@@ -108,21 +105,18 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Oral Boards Trainer API", version="0.3")
 
-# CORS_ORIGIN can be a comma-separated list (e.g. "http://localhost:8080,http://127.0.0.1:8080")
 _raw_origins = os.getenv("CORS_ORIGIN", "http://localhost:8080")
 _allow_origins = [o.strip() for o in _raw_origins.split(",") if o.strip()]
-_allow_credentials = _allow_origins != ["*"]  # credentials not allowed with wildcard origins
+_allow_credentials = _allow_origins != ["*"]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allow_origins,
     allow_credentials=_allow_credentials,
     allow_methods=["*"],
-    # Explicit list to avoid picky preflight handling on some Starlette versions:
     allow_headers=["Content-Type", "Authorization", "X-API-KEY", "x-api-key"],
 )
 
-# Optional request logs (shows preflight details)
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     log.info(
@@ -136,15 +130,91 @@ async def log_requests(request: Request, call_next):
     log.info("<<< %s %s %s", request.method, request.url.path, resp.status_code)
     return resp
 
-# Friendly root & favicon
 @app.get("/", include_in_schema=False)
 def root(): return RedirectResponse("/docs")
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon(): return Response(status_code=204)
 
+# # -----------------------------
+# # Models
+# # -----------------------------
+# class UserCreate(BaseModel):
+#     email: EmailStr
+#     password: str
+
+# class TokenOut(BaseModel):
+#     access_token: str
+#     token_type: str = "bearer"
+
+# class FeedbackIn(BaseModel):
+#     caseId: str
+#     boardPrompt: Optional[str] = None
+#     expectedAnswer: Optional[str] = None
+#     rubric: List[str] = []
+#     transcript: str
+#     heuristic: Dict[str, Any] = {}
+
+# class FeedbackOut(BaseModel):
+#     feedback: str
+#     score: Dict[str, Any] = {}
+
+# class ChatTurn(BaseModel):
+#     role: Literal["user", "assistant"]
+#     content: str = ""
+
+# class MCQChatRequest(BaseModel):
+#     mode: Optional[str] = "mcq_chat"
+#     caseId: Optional[str] = None
+#     title: Optional[str] = None
+#     subspecialty: Optional[str] = None
+#     boardPrompt: Optional[str] = None
+#     expectedAnswer: Optional[str] = None
+#     question: Optional[str] = None
+#     choices: List[str] = []
+#     selected: List[str] = []
+#     messages: List[ChatTurn] = []
+
+# class MCQChatResponse(BaseModel):
+#     reply: str
+
+# class AttemptIn(BaseModel):
+#     caseId: str
+#     subspecialty: str
+#     similarity: float
+#     rubricHit: int
+#     rubricTotal: int
+#     letter: str
+
+# class AttemptRow(BaseModel):
+#     ts: int = Field(default_factory=lambda: int(time.time()*1000))
+#     caseId: str
+#     subspecialty: str = "Unknown"
+#     similarity: float = 0.0
+#     rubricHit: int = 0
+#     rubricTotal: int = 0
+#     letter: str = ""
+
+# class ProgressOut(BaseModel):
+#     reviewedCount: int
+#     per: Dict[str, Any]
+
+# class Case(BaseModel):
+#     id: str = Field(..., description="Unique case ID, e.g. gi-001")
+#     title: str
+#     subspecialty: str
+#     tags: List[str] = []
+#     images: List[str] = []
+#     boardPrompt: Optional[str] = None
+#     expectedAnswer: Optional[str] = None
+#     rubric: List[str] = []
+
+# class UpsertResult(BaseModel):
+#     ok: bool
+#     id: str
 # -----------------------------
 # Models
 # -----------------------------
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
@@ -165,25 +235,20 @@ class FeedbackOut(BaseModel):
     feedback: str
     score: Dict[str, Any] = {}
 
-# ---- MCQ Chat models ----
 class ChatTurn(BaseModel):
     role: Literal["user", "assistant"]
     content: str = ""
 
 class MCQChatRequest(BaseModel):
-    # All optional for robustness (prevents 422)
     mode: Optional[str] = "mcq_chat"
     caseId: Optional[str] = None
     title: Optional[str] = None
     subspecialty: Optional[str] = None
     boardPrompt: Optional[str] = None
     expectedAnswer: Optional[str] = None
-
     question: Optional[str] = None
     choices: List[str] = []
     selected: List[str] = []
-
-    # rolling chat history
     messages: List[ChatTurn] = []
 
 class MCQChatResponse(BaseModel):
@@ -210,15 +275,55 @@ class ProgressOut(BaseModel):
     reviewedCount: int
     per: Dict[str, Any]
 
+# New nested models for Case
+class MediaItem(BaseModel):
+    type: str  # "image" or "video"
+    src: str
+    caption: Optional[str] = None
+    poster: Optional[str] = None
+    autoplay: Optional[bool] = False
+    loop: Optional[bool] = False
+    muted: Optional[bool] = False
+
+class MCQChoice(BaseModel):
+    id: str
+    text: str
+    correct: Optional[bool] = False
+    explain: Optional[str] = None
+
+class MCQQuestion(BaseModel):
+    id: str
+    stem: str
+    choices: List[MCQChoice]
+    multi_select: Optional[bool] = False
+    shuffle_choices: Optional[bool] = True
+    concept_ids: Optional[List[str]] = []
+
+class MCQSpec(BaseModel):
+    shuffle_questions: Optional[bool] = False
+    questions: List[MCQQuestion] = []
+
+class DifferentialItem(BaseModel):
+    label: str
+
+class Differential(BaseModel):
+    items: List[DifferentialItem] = []
+    min_required: Optional[int] = 1
+
+# Updated Case model with all fields
 class Case(BaseModel):
     id: str = Field(..., description="Unique case ID, e.g. gi-001")
     title: str
     subspecialty: str
     tags: List[str] = []
     images: List[str] = []
+    media: Optional[List[MediaItem]] = []
     boardPrompt: Optional[str] = None
     expectedAnswer: Optional[str] = None
     rubric: List[str] = []
+    references: Optional[List[str]] = []
+    mcqs: Optional[MCQSpec] = None
+    differential: Optional[Differential] = None
 
 class UpsertResult(BaseModel):
     ok: bool
@@ -273,7 +378,6 @@ def _write_cases_file(items: List[Dict[str, Any]]):
         json.dump(items, f, indent=2)
 
 def _split_expected_answer(expected: Optional[str]) -> Dict[str, str]:
-    """Parse 'Diagnosis: ... Key: ... Differential: ... Management: ...' into a dict."""
     if not expected:
         return {}
     blocks: Dict[str, str] = {}
@@ -328,7 +432,6 @@ def _build_coach_reply(req: "MCQChatRequest") -> str:
         if mgmt:
             lines.append(f"**Management considerations:** {mgmt}")
 
-    # gentle prompt to keep the chat going
     if not req.messages or (req.messages and req.messages[-1].role != "user"):
         lines.append("What would you like to explore—diagnostic criteria, differentials, or management?")
     return "\n".join(lines)
@@ -340,20 +443,17 @@ def _build_coach_reply(req: "MCQChatRequest") -> str:
 def health():
     return {"ok": True, "mongo": USE_MONGO, "authMode": AUTH_MODE, "model": OPENAI_MODEL}
 
-# Auth (JWT helpers still available even if AUTH_MODE != jwt)
 @app.post("/api/auth/register", response_model=TokenOut)
 async def register(body: UserCreate):
     if await get_user(body.email):
         raise HTTPException(400, "User already exists")
     
-    # DEBUG LOGGING
     log.info(f"=== REGISTER DEBUG ===")
     log.info(f"Email: {body.email}")
     log.info(f"Password length: {len(body.password)}")
 
     await create_user(body.email, body.password)
     
-    # Verify it was stored correctly
     user_check = await get_user(body.email)
     log.info(f"User created and verified: {user_check is not None}")
     if user_check:
@@ -367,7 +467,6 @@ async def login(form: OAuth2PasswordRequestForm = Depends()):
     email = form.username
     user = await get_user(email)
 
-    # DEBUG LOGGING - Remove after fixing
     log.info(f"=== LOGIN DEBUG ===")
     log.info(f"Email: {email}")
     log.info(f"Password length: {len(form.password)}")
@@ -377,7 +476,6 @@ async def login(form: OAuth2PasswordRequestForm = Depends()):
         log.info(f"Stored hash exists: {bool(user.get('password_hash'))}")
         log.info(f"Hash starts with: {user.get('password_hash', '')[:20]}...")
         
-        # Test password verification
         try:
             password_match = verify_pw(form.password, user["password_hash"])
             log.info(f"Password verification result: {password_match}")
@@ -399,7 +497,6 @@ async def login(form: OAuth2PasswordRequestForm = Depends()):
 async def me(identity: str = Depends(current_identity)):
     return {"identity": identity, "isAdmin": (not ADMIN_EMAILS) or (identity.lower() in ADMIN_EMAILS)}
 
-# Cases — list/fetch/upsert/delete
 @app.get("/api/cases", response_model=List[Case])
 async def list_cases(examMode: bool = False):
     if USE_MONGO:
@@ -425,6 +522,69 @@ async def get_case(case_id: str):
             if it.get("id") == case_id:
                 return it
         raise HTTPException(404, "Not found")
+
+@app.get("/api/cases/{case_id}/signed")
+async def get_case_with_signed_urls(
+    case_id: str,
+    identity: str = Depends(current_identity)
+):
+    """Get a case with signed URLs for all images/videos"""
+    
+    if not S3_BUCKET:
+        raise HTTPException(400, "S3_BUCKET not configured")
+    
+    # Get the case
+    if USE_MONGO:
+        doc = await db.cases.find_one({"id": case_id})
+        if not doc:
+            raise HTTPException(404, "Not found")
+        case = dict(doc)
+        if '_id' in case:
+            del case['_id']
+    else:
+        cases = _read_cases_file()
+        case = next((dict(c) for c in cases if c.get("id") == case_id), None)
+        if not case:
+            raise HTTPException(404, "Not found")
+    
+    # Helper function to generate signed URL
+    def sign_s3_url(url: str) -> str:
+        if not url or S3_BUCKET not in url:
+            return url
+        try:
+            # Extract S3 key from URL
+            # https://cm-boards-cases.s3.amazonaws.com/cases/gi-001/image-1.png
+            # -> cases/gi-001/image-1.png
+            s3_key = url.split(f'{S3_BUCKET}.s3.amazonaws.com/')[-1].split('?')[0]
+            signed_url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': S3_BUCKET, 'Key': s3_key},
+                ExpiresIn=3600  # 1 hour
+            )
+            return signed_url
+        except Exception as e:
+            log.error(f"Failed to sign URL {url}: {e}")
+            return url  # fallback to original
+    
+    # Sign images
+    if case.get('images'):
+        case['images'] = [sign_s3_url(img) for img in case['images']]
+    
+    # Sign videos in media array
+    if case.get('media'):
+        for media in case['media']:
+            if media.get('src'):
+                media['src'] = sign_s3_url(media['src'])
+            if media.get('poster'):
+                media['poster'] = sign_s3_url(media['poster'])
+    
+    # Sign references
+    if case.get('references'):
+        for ref in case['references']:
+            if ref.get('url'):
+                ref['url'] = sign_s3_url(ref['url'])
+    
+    return case
 
 @app.post("/api/cases", response_model=UpsertResult)
 async def upsert_case(body: Case, identity: str = Depends(current_identity)):
@@ -456,25 +616,17 @@ async def delete_case(case_id: str, identity: str = Depends(current_identity)):
         _write_cases_file(items)
         return {"ok": True}
 
-# Feedback (LLM)
 @app.post("/api/mcq/chat", response_model=MCQChatResponse)
 async def mcq_chat(body: MCQChatRequest, identity: str = Depends(current_identity)):
-    """
-    Conversational endpoint about the current MCQ. 
-    Works without OpenAI (deterministic coach), 
-    and uses your OpenAI client automatically if OPENAI_API_KEY is set.
-    """
     system = (
         "You are an expert radiology boards coach. "
         "Use the case context and question to provide concise, high-yield teaching. "
         "Contrast the best answer with top distractors when useful."
     )
 
-    # If you have OPENAI_API_KEY configured, try the model first
     if openai_client and os.getenv("OPENAI_API_KEY"):
         try:
             msgs = [{"role": "system", "content": system}]
-            # Seed the conversation with compact context (first turn)
             context_blob = (
                 f"CASE: {body.title or ''} [{body.subspecialty or ''}]\n"
                 f"CONTEXT: {body.boardPrompt or ''}\n"
@@ -486,11 +638,9 @@ async def mcq_chat(body: MCQChatRequest, identity: str = Depends(current_identit
             )
             msgs.append({"role": "user", "content": context_blob})
 
-            # Then any rolling chat history
             for t in body.messages or []:
                 msgs.append({"role": t.role, "content": t.content or ""})
 
-            # If user hasn't asked anything yet, nudge an initial explanation
             if not any(t.role == "user" for t in body.messages or []):
                 msgs.append({"role": "user", "content": "Briefly explain the best answer and key pitfalls."})
 
@@ -506,7 +656,6 @@ async def mcq_chat(body: MCQChatRequest, identity: str = Depends(current_identit
         except Exception as e:
             log.exception("MCQ chat LLM error: %s", e)
 
-    # Fallback: deterministic coach (no external LLM required)
     return MCQChatResponse(reply=_build_coach_reply(body))
 
 @app.post("/api/feedback", response_model=FeedbackOut)
@@ -553,7 +702,6 @@ Respond with:
         feedback_text = "LLM disabled. Set OPENAI_API_KEY to enable model feedback."
     return FeedbackOut(feedback=feedback_text, score=body.heuristic or {})
 
-# Attempts / Progress
 @app.post("/api/attempt")
 async def add_attempt(a: AttemptIn, identity: str = Depends(current_identity)):
     await insert_attempt(identity, a.dict())
@@ -599,7 +747,6 @@ async def clear_progress(identity: str = Depends(current_identity)):
     await clear_attempts(identity)
     return {"ok": True}
 
-# --- S3 presign ---
 _KEY_RE = re.compile(r"^[a-zA-Z0-9/_\-.]+$")
 
 ALLOWED_PUT_CT = {
@@ -653,14 +800,14 @@ async def s3_presign(
         except Exception as e:
             raise HTTPException(500, f"S3 error: {e}")
         return {"url": url, "method": "GET"}
+
 # =============================
 # ADMIN ROUTES
 # =============================
-from fastapi import UploadFile, File, Form
 
 def require_admin_user(identity: str = Depends(current_identity)):
     """Check if user is admin"""
-    require_admin(identity)  # reuse existing function
+    require_admin(identity)
     return identity
 
 @app.post("/api/admin/upload-image")
@@ -673,6 +820,13 @@ async def admin_upload_image(
     
     if not S3_BUCKET:
         raise HTTPException(400, "S3_BUCKET not configured")
+    
+    # Validate case_id format
+    if not re.match(r'^[a-z0-9-]+$', case_id):
+        raise HTTPException(
+            400, 
+            f"Invalid case_id '{case_id}'. Must be lowercase letters, numbers, and dashes only (e.g., gi-001, thorax-002)"
+        )
     
     if not file.content_type or not file.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail="File must be an image")
@@ -711,6 +865,12 @@ async def admin_upload_video(
     if not S3_BUCKET:
         raise HTTPException(400, "S3_BUCKET not configured")
     
+    if not re.match(r'^[a-z0-9-]+$', case_id):
+        raise HTTPException(
+            400, 
+            f"Invalid case_id '{case_id}'. Must be lowercase letters, numbers, and dashes only"
+        )
+    
     if not file.content_type or not file.content_type.startswith('video/'):
         raise HTTPException(status_code=400, detail="File must be a video")
     
@@ -747,6 +907,12 @@ async def admin_upload_reference(
     
     if not S3_BUCKET:
         raise HTTPException(400, "S3_BUCKET not configured")
+    
+    if not re.match(r'^[a-z0-9-]+$', case_id):
+        raise HTTPException(
+            400, 
+            f"Invalid case_id '{case_id}'. Must be lowercase letters, numbers, and dashes only"
+        )
     
     if file.content_type != 'application/pdf':
         raise HTTPException(status_code=400, detail="File must be a PDF")
@@ -795,7 +961,6 @@ async def admin_create_case(
             raise HTTPException(500, f"Database error: {e}")
     else:
         items = _read_cases_file()
-        # Check for duplicate
         if any(x.get('id') == body.id for x in items):
             raise HTTPException(400, f"Case {body.id} already exists")
         items.append(case_dict)
