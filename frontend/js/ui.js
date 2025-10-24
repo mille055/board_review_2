@@ -11,7 +11,6 @@ const countEl = document.getElementById('count');
 
 const vFeedback = document.getElementById('vFeedback');
 const vScore    = document.getElementById('vScore');
-const vLLM      = document.getElementById('vLLM');
 
 // ===== Mode (oral | mcq) =====
 let mode = (localStorage.getItem('mode') || 'oral');
@@ -19,6 +18,40 @@ let mode = (localStorage.getItem('mode') || 'oral');
 /* ---------- Local filter state ---------- */
 let activeSubs = new Set();
 let queryStr   = "";
+
+/* ---------- Admin check ---------- */
+let currentUser = null;
+
+async function fetchCurrentUser() {
+  const token = localStorage.getItem('jwt');
+  if (!token) return null;
+  
+  try {
+    const response = await fetch(`${CONFIG.API_BASE}/api/me`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (response.ok) {
+      currentUser = await response.json();
+      console.log('Current user:', currentUser);
+      return currentUser;
+    }
+  } catch (e) {
+    console.error('Failed to fetch user info:', e);
+  }
+  return null;
+}
+
+function isAdmin() {
+  return currentUser?.isAdmin || false;
+}
+
+function updateAdminUI() {
+  const adminLink = document.getElementById('adminLink');
+  if (adminLink) {
+    adminLink.style.display = isAdmin() ? 'inline-block' : 'none';
+  }
+}
 
 /* ---------- Helpers ---------- */
 function setToggleChecked(on){
@@ -67,6 +100,65 @@ function updateCounts(){
   countEl.textContent = `${list.length} case${list.length===1?'':'s'} • Reviewed ${reviewedCount}/${total}`;
 }
 
+/* ---------- Sort cases by title ---------- */
+function sortCasesByTitle(cases) {
+  return cases.sort((a, b) => {
+    const aNum = parseInt(a.title.match(/\d+/)?.[0] || '999');
+    const bNum = parseInt(b.title.match(/\d+/)?.[0] || '999');
+    return aNum - bNum;
+  });
+}
+
+/* ---------- Load cases from database with signed URLs ---------- */
+async function loadCasesFromDatabase() {
+  try {
+    const token = localStorage.getItem('jwt');
+    if (!token) {
+      console.log('No JWT token, skipping auto-load');
+      return;
+    }
+    
+    console.log('Loading cases from database...');
+    
+    const response = await fetch(`${CONFIG.API_BASE}/api/cases`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    if (!response.ok) {
+      console.warn('Failed to load cases:', response.status);
+      return;
+    }
+    
+    let cases = await response.json();
+    cases = sortCasesByTitle(cases);
+    
+    const casesWithSignedUrls = await Promise.all(
+      cases.map(async (c) => {
+        if (c.images && c.images.length > 0 && c.images[0].includes('s3.amazonaws.com')) {
+          try {
+            const signedResponse = await fetch(`${CONFIG.API_BASE}/api/cases/${c.id}/signed`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            if (signedResponse.ok) {
+              return await signedResponse.json();
+            }
+          } catch (err) {
+            console.warn(`Failed to get signed URLs for ${c.id}:`, err);
+          }
+        }
+        return c;
+      })
+    );
+    
+    setCases(casesWithSignedUrls);
+    render();
+    console.log(`✓ Loaded ${casesWithSignedUrls.length} cases from database`);
+  } catch (error) {
+    console.error('Failed to load cases from database:', error);
+  }
+}
+
 /* ---------- Mode UI ---------- */
 function renderMode(){
   const oralPane = document.getElementById('oralPane');
@@ -92,7 +184,7 @@ function bindModeToggle(){
   el.addEventListener('change', (e)=> onFlip(e.target.checked));
 }
 
-/* ---------- Render markdown helpers (safe) ---------- */
+/* ---------- Render markdown helpers ---------- */
 function renderMarkdown(md) {
   if (window.marked && window.DOMPurify) {
     return DOMPurify.sanitize(marked.parse(String(md || '')));
@@ -102,10 +194,63 @@ function renderMarkdown(md) {
             .replace(/\*(.+?)\*/g, '<em>$1</em>')
             .replace(/\n/g, '<br>');
 }
+
 function escapeWithBr(s){
   return String(s || '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')
     .replace(/\n/g,'<br>');
+}
+
+/* ---------- Show/Hide Answer functionality ---------- */
+function setupShowAnswerButton(caseObj) {
+  const showAnswerBtn = document.getElementById('showAnswerBtn');
+  const answerSection = document.getElementById('answerSection');
+  const vAnswer = document.getElementById('vAnswer');
+  const vRubric = document.getElementById('vRubric');
+  
+  if (!showAnswerBtn || !answerSection) return;
+  
+  if (isAdmin()) {
+    showAnswerBtn.style.display = 'none';
+    answerSection.style.display = 'block';
+  } else {
+    let isShown = false;
+    showAnswerBtn.style.display = 'block';
+    answerSection.style.display = 'none';
+    
+    showAnswerBtn.onclick = () => {
+      isShown = !isShown;
+      answerSection.style.display = isShown ? 'block' : 'none';
+      showAnswerBtn.textContent = isShown ? 'Hide Answer & Rubric' : 'Show Answer & Rubric';
+    };
+  }
+  
+  if (vAnswer) vAnswer.textContent = caseObj.expectedAnswer || 'No answer provided';
+  if (vRubric) {
+    vRubric.innerHTML = (caseObj.rubric || []).map(r => `• ${r}`).join('<br>');
+  }
+}
+
+/* ---------- LLM Chat setup ---------- */
+function setupLLMChat() {
+  const llmAskBtn = document.getElementById('llmAskBtn');
+  const llmPanel = document.getElementById('llmPanel');
+  const llmHide = document.getElementById('llmHide');
+  
+  if (llmAskBtn && llmPanel && llmHide) {
+    llmAskBtn.onclick = () => {
+      const c = window.__currentCaseForGrading;
+      if (!c) return alert('Open a case first.');
+      llmPanel.style.display = 'block';
+      llmAskBtn.style.display = 'none';
+      openLLMChat(c, mode === 'mcq' ? 'mcq' : 'oral');
+    };
+    
+    llmHide.onclick = () => {
+      llmPanel.style.display = 'none';
+      llmAskBtn.style.display = 'block';
+    };
+  }
 }
 
 /* ---------- Public init ---------- */
@@ -146,107 +291,14 @@ export function initUI(){
 
   document.getElementById('randomOne').onclick=()=>{
     const c = randomPick(getFiltered());
-    if(!c) return alert('No cases loaded. Use "Load Samples" or "Import JSON".');
+    if(!c) return alert('No cases loaded.');
     window.openViewer(c);
   };
   document.getElementById('randomSet').onclick=()=>{
     const list = getFiltered();
-    if(!list.length) return alert('No cases loaded. Use "Load Samples" or "Import JSON".');
+    if(!list.length) return alert('No cases loaded.');
     const n = Math.min(5, list.length);
     alert("Random set:\n\n" + shuffle([...list]).slice(0,n).map(c=>`• ${c.title} — ${c.subspecialty}`).join('\n'));
-  };
-
-  document.getElementById('importBtn').onclick=()=>document.getElementById('fileInput').click();
-  document.getElementById('fileInput').addEventListener('change', async (e)=>{
-    const file = e.target.files[0]; if(!file) return;
-    try{
-      const json = JSON.parse(await file.text());
-      if(Array.isArray(json)){ setCases(json); render(); alert(`Imported ${json.length} cases ✔`); }
-      else { alert('JSON must be an array of cases'); }
-    }catch{ alert('Invalid JSON'); }
-  });
-
-  // Add this after the initUI function
-  async function refreshSignedUrls() {
-    const token = localStorage.getItem('jwt');
-    if (!token) return;
-    
-    const cases = getAll();
-    if (!cases.length) return;
-    
-    console.log('Refreshing signed URLs for', cases.length, 'cases...');
-    
-    const refreshedCases = await Promise.all(
-      cases.map(async (c) => {
-        if (c.images && c.images.length > 0 && c.images[0].includes('s3.amazonaws.com')) {
-          try {
-            const response = await fetch(`${CONFIG.API_BASE}/api/cases/${c.id}/signed`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            
-            if (response.ok) {
-              return await response.json();
-            }
-          } catch (err) {
-            console.warn(`Failed to refresh signed URLs for ${c.id}`);
-          }
-        }
-        return c;
-      })
-    );
-    
-    setCases(refreshedCases);
-    render();
-    console.log('✓ Signed URLs refreshed');
-  }
-
-  // UPDATED: Load cases from API with signed URLs
-  document.getElementById('loadSamples').onclick = async ()=>{
-    try {
-      const token = localStorage.getItem('jwt');
-      if (!token) {
-        alert('Please log in first to load cases.');
-        return;
-      }
-      
-      // Fetch all cases from the API
-      const response = await fetch(`${CONFIG.API_BASE}/api/cases`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load cases: ${response.status}`);
-      }
-      
-      const cases = await response.json();
-      
-      // Now fetch signed URLs for each case
-      const casesWithSignedUrls = await Promise.all(
-        cases.map(async (c) => {
-          if (c.images && c.images.length > 0 && c.images[0].includes('s3.amazonaws.com')) {
-            try {
-              const signedResponse = await fetch(`${CONFIG.API_BASE}/api/cases/${c.id}/signed`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
-              
-              if (signedResponse.ok) {
-                return await signedResponse.json();
-              }
-            } catch (err) {
-              console.warn(`Failed to get signed URLs for ${c.id}:`, err);
-            }
-          }
-          return c;
-        })
-      );
-      
-      setCases(casesWithSignedUrls);
-      render();
-      alert(`Loaded ${casesWithSignedUrls.length} cases ✔`);
-    } catch (error) {
-      console.error('Failed to load cases:', error);
-      alert(`Failed to load cases: ${error.message}`);
-    }
   };
 
   document.getElementById('vMicBtn')?.addEventListener('click', toggleMic);
@@ -254,9 +306,6 @@ export function initUI(){
   document.getElementById('gradeBtn')?.addEventListener('click', async ()=>{
     const transcriptEl = document.getElementById('vTranscript');
     const tr = transcriptEl ? transcriptEl.value.trim() : '';
-  
-    console.log('Transcript element:', transcriptEl);
-    console.log('Transcript value:', tr);
   
     if(!tr) return alert('No transcript. Use mic or type your response.');
   
@@ -272,9 +321,6 @@ export function initUI(){
 
     if (vFeedback) vFeedback.textContent = heuristicFeedback(heur);
     if (vScore)    vScore.textContent = `${Math.round(heur.similarity*100)}% • ${heur.rubricHit}/${(caseObj.rubric||[]).length} • ${letter(heur)}`;
-
-    const payload = buildLLMPayload({caseObj, transcript:tr, heur});
-    if (vLLM) vLLM.textContent = JSON.stringify(payload, null, 2);
 
     if (CONFIG?.FEEDBACK_MODE && CONFIG.FEEDBACK_MODE !== 'heuristic') {
       try {
@@ -300,35 +346,38 @@ export function initUI(){
       letter: letter(heur)
     });
     updateCounts();
+    
+    // Show feedback section after grading
+    const feedbackSection = document.getElementById('feedbackSection');
+    if (feedbackSection) feedbackSection.style.display = 'block';
   });
 
-  // Bridge to viewer (and MCQ renderer) - WITH SIGNED URLs
+  // Bridge to viewer
   window.openViewer = async (c)=>{
     console.log('Opening case:', c.id);
     
-    // Fetch case with signed URLs if S3 images are present
     let caseToOpen = c;
     if (c.images && c.images.length > 0 && c.images[0].includes('s3.amazonaws.com')) {
-        try {
-            const token = localStorage.getItem('jwt');
-            const response = await fetch(`${CONFIG.API_BASE}/api/cases/${c.id}/signed`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            
-            if (response.ok) {
-                caseToOpen = await response.json();
-                console.log('✓ Loaded case with signed URLs');
-            } else {
-                console.warn('Failed to get signed URLs, using original URLs');
-            }
-        } catch (error) {
-            console.error('Failed to load signed URLs:', error);
-            // Fall back to original case
+      try {
+        const token = localStorage.getItem('jwt');
+        const response = await fetch(`${CONFIG.API_BASE}/api/cases/${c.id}/signed`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          caseToOpen = await response.json();
+          console.log('✓ Loaded case with signed URLs');
         }
+      } catch (error) {
+        console.error('Failed to load signed URLs:', error);
+      }
     }
     
     window.__currentCaseForGrading = caseToOpen;
     openViewerBase(caseToOpen);
+
+    // Set up show/hide answer button
+    setupShowAnswerButton(caseToOpen);
 
     if (mode === 'mcq' && !(caseToOpen?.mcqs?.questions?.length)) {
       mode = 'oral';
@@ -338,19 +387,27 @@ export function initUI(){
     setToggleChecked(mode === 'mcq');
     renderMode();
     if (mode === 'mcq') renderMCQs(caseToOpen); else clearMCQs();
+    
+    // Hide feedback section initially
+    const feedbackSection = document.getElementById('feedbackSection');
+    if (feedbackSection) feedbackSection.style.display = 'none';
   };
 
   bindLLMChatUI();
-  document.getElementById('llmAskBtnOral')?.addEventListener('click', ()=>{
-    const c = window.__currentCaseForGrading;
-    if (!c) return alert('Open a case first.');
-    openLLMChat(c, 'oral');
-  });
-
   bindModeToggle();
   renderMode();
   render();
-  refreshSignedUrls();
+  
+  // Fetch user info and set up admin UI
+  fetchCurrentUser().then(() => {
+    updateAdminUI();
+  });
+  
+  // Set up LLM chat
+  setupLLMChat();
+  
+  // Load cases from database
+  loadCasesFromDatabase();
 }
 
 /* ---------- Render grid ---------- */
@@ -358,7 +415,7 @@ function render(){
   updateCounts();
 
   const list = getFiltered();
-  grid.innerHTML = list.length ? '' : `<div class="small">No cases match your filters. Load samples or import your JSON.</div>`;
+  grid.innerHTML = list.length ? '' : `<div class="small">No cases match your filters.</div>`;
 
   list.forEach(c=>{
     const card = document.createElement('div'); card.className='card';
@@ -436,12 +493,6 @@ function renderMCQs(caseObj){
   submit.className = 'btn'; submit.textContent = 'Grade';
   actions.appendChild(submit);
 
-  const why = document.createElement('button');
-  why.type = 'button';
-  why.textContent = 'Ask the LLM';
-  why.addEventListener('click', ()=> openLLMChat(caseObj, 'mcq'));
-  actions.appendChild(why);
-
   form.appendChild(actions);
   pane.appendChild(form);
 
@@ -491,10 +542,25 @@ function gradeMCQs(caseObj, form){
     scoreLine.className = 'mcq-score';
     form.appendChild(scoreLine);
   }
-  scoreLine.textContent = `Score: ${nCorrect} / ${cards.length}`;
+  
+  const score = nCorrect / cards.length;
+  const percentage = Math.round(score * 100);
+  scoreLine.textContent = `Score: ${nCorrect} / ${cards.length} (${percentage}%)`;
+  
+  // Auto-save the score
+  recordAttempt({
+    caseId: caseObj.id,
+    subspecialty: caseObj.subspecialty || 'Unknown',
+    similarity: score,
+    rubricHit: nCorrect,
+    rubricTotal: cards.length,
+    letter: score >= 0.75 ? 'A' : score >= 0.60 ? 'B' : score >= 0.50 ? 'C' : 'F'
+  });
+  updateCounts();
+  console.log('✓ MCQ score saved');
 }
 
-/* ---------- LLM Chat (in-viewer panel) ---------- */
+/* ---------- LLM Chat ---------- */
 const chatDOM = {
   panel:   document.getElementById('llmPanel'),
   log:     document.getElementById('llmChatLog'),
@@ -512,10 +578,6 @@ let chatState = {
 
 function bindLLMChatUI(){
   if (!chatDOM.panel) return;
-  chatDOM.hideBtn?.addEventListener('click', ()=> {
-    chatDOM.panel.style.display = 'none';
-    chatDOM.hideBtn.style.display = 'none';
-  });
   chatDOM.sendBtn?.addEventListener('click', onLLMSend);
   chatDOM.input?.addEventListener('keydown', (e) => {
     const k = e.key;
@@ -557,6 +619,7 @@ function getCurrentMCQContext(){
     : [];
   return { idx: Math.max(0, idx), selectedText };
 }
+
 function getOralContext(){
   const tr = (typeof getTranscript === 'function') ? (getTranscript() || '').trim() : '';
   return { transcript: tr };
@@ -593,9 +656,6 @@ export function openLLMChat(caseObj, kind='mcq'){
   ];
 
   renderChat();
-  chatDOM.panel.style.display = 'block';
-  chatDOM.hideBtn.style.display = 'inline-block';
-  chatDOM.input?.focus();
 }
 
 async function onLLMSend(){

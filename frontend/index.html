@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Radiology Case Conference</title>
   <link rel="stylesheet" href="css/styles.css"/>
-  <!-- NOW Chart.js can load -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-
-  <!-- Markdown libs -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
 </head>
@@ -19,14 +16,6 @@
       <div class="brand">
         <span class="dot"></span>
         <h1>Radiology Case Conference</h1>
-      </div>
-
-      <!-- Mode toggle -->
-      <div class="section">
-        <label class="mode-toggle" style="display:flex;align-items:center;gap:.5rem;">
-          <input id="modeToggle" type="checkbox" />
-          <span>Multiple Choice</span>
-        </label>
       </div>
 
       <div class="section">
@@ -61,12 +50,9 @@
       <div class="toolbar">
         <div class="counts"><span id="count"></span></div>
         <div style="display:flex; gap:8px">
-          <button class="btn ghost" id="loadSamples">Load Samples</button>
-          <button class="btn" id="importBtn">Import JSON</button>
           <button id="openProgress" class="btn ghost">Progress</button>
           <a href="/admin.html" class="btn ghost" id="adminLink" style="display:none;">Admin</a>
           <button id="logoutBtn" class="btn ghost">Logout</button>
-          <input id="fileInput" type="file" accept="application/json" class="sr"/>
         </div>
       </div>
       <section id="grid" class="grid"></section>
@@ -81,46 +67,57 @@
         <h3 id="vTitle" style="margin:0 0 6px 0"></h3>
         <div class="small" id="vMeta"></div>
 
+        <!-- Mode toggle - MOVED HERE -->
+        <div class="section">
+          <label class="mode-toggle" style="display:flex;align-items:center;gap:.5rem;">
+            <input id="modeToggle" type="checkbox" />
+            <span>Multiple Choice Mode</span>
+          </label>
+        </div>
+
         <div class="section">
           <div class="label">Images</div>
           <div id="vThumbs" class="viewer-thumbs"></div>
         </div>
 
-        <!-- Boards / answer -->
+        <!-- Boards prompt -->
         <div class="section">
-          <div class="label">Boards Prompt (Clinical History)</div>
+          <div class="label">Clinical History</div>
           <div id="vBoardPrompt" class="box small" style="white-space:pre-wrap"></div>
         </div>
 
+        <!-- Show Answer button and hidden content -->
         <div class="section">
-          <div class="label">Expected Answer (examiner view)</div>
-          <div id="vAnswer" class="small box" style="white-space:pre-wrap"></div>
+          <button class="btn ghost" id="showAnswerBtn" style="width:100%">Show Answer & Rubric</button>
+          
+          <div id="answerSection" style="display:none;">
+            <div style="margin-top:12px;">
+              <div class="label">Expected Answer</div>
+              <div id="vAnswer" class="small box" style="white-space:pre-wrap"></div>
+            </div>
+            
+            <div style="margin-top:12px;">
+              <div class="label">Rubric (critical points)</div>
+              <div id="vRubric" class="small box"></div>
+            </div>
+          </div>
         </div>
 
         <!-- ORAL mode pane -->
         <div id="oralPane">
           <div class="section">
-            <div class="label">Transcript (demo)</div>
-            <!--<div id="vTranscript" class="small box" style="white-space:pre-wrap; min-height:80px"></div>-->
+            <div class="label">Your Response</div>
             <textarea id="vTranscript" 
               class="transcript-area" 
               placeholder="Click here to type, or use the microphone to dictate..."
               rows="8"></textarea>
             <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap">
-              <button class="btn" id="vMicBtn" title="Demo transcript via Web Speech API">🎤 Start Demo Transcribe</button>
-              <!--<button class="btn ghost" id="vPasteBtn">Paste/Edit Transcript</button>-->
+              <button class="btn" id="vMicBtn" title="Transcribe via Web Speech API">🎤 Transcribe</button>
               <button class="btn" id="gradeBtn">Grade</button>
-              <!-- NEW: Ask LLM in oral mode -->
-              <button class="btn ghost" id="llmAskBtnOral">Ask the LLM</button>
             </div>
           </div>
 
-          <div class="section">
-            <div class="label">Rubric (critical points)</div>
-            <div id="vRubric" class="small box"></div>
-          </div>
-
-          <div class="section">
+          <div class="section" id="feedbackSection" style="display:none;">
             <div class="label">Feedback</div>
             <div id="vFeedback" class="small box mono" style="white-space:pre-wrap; min-height:80px"></div>
             <div class="score">
@@ -128,32 +125,26 @@
               <div id="vScore" class="pill">–</div>
             </div>
           </div>
-
-          <div class="section">
-            <div class="label">LLM Payload (preview)</div>
-            <div id="vLLM" class="small box mono" style="max-height:200px; overflow:auto"></div>
-          </div>
         </div>
 
-        <!-- MCQ mode pane (populated by ui.js) -->
+        <!-- MCQ mode pane -->
         <div id="mcqPane" style="display:none"></div>
 
-        <!-- NEW: In-viewer LLM chat panel -->
+        <!-- LLM chat panel -->
         <div class="section">
-          <div class="label" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-            <span>Ask the LLM</span>
-            <button class="btn ghost" id="llmHide" style="display:none;">Hide</button>
-          </div>
-          <div id="llmPanel" style="display:none">
+          <button class="btn ghost" id="llmAskBtn" style="width:100%">Ask the LLM</button>
+          
+          <div id="llmPanel" style="display:none; margin-top:12px;">
             <div id="llmChatLog" class="box small" style="height:220px; overflow:auto;"></div>
             <div style="display:flex; gap:8px; margin-top:8px;">
-              <input id="llmInput" class="input" placeholder="Type your question (e.g., ‘Why is D wrong?’)" style="flex:1;"/>
+              <input id="llmInput" class="input" placeholder="Type your question..." style="flex:1;"/>
               <button class="btn" id="llmSend">Send</button>
             </div>
+            <button class="btn ghost" id="llmHide" style="margin-top:8px; width:100%;">Hide Chat</button>
           </div>
         </div>
 
-        <button class="btn ghost" id="closeViewer" style="margin-top:8px">Close</button>
+        <button class="btn ghost" id="closeViewer" style="margin-top:8px; width:100%;">Close</button>
       </aside>
 
       <div class="viewer-stage">
@@ -203,19 +194,14 @@
         </div>
       </div>
 
-      <!-- Summary Stats -->
       <div id="progressSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px;"></div>
 
-      <!-- Charts Container -->
       <div style="display:grid;grid-template-columns:1fr;gap:18px;">
-        
-        <!-- Performance Over Time -->
         <div class="box">
           <div class="label">Performance Over Time</div>
           <canvas id="chartTime" height="180"></canvas>
         </div>
 
-        <!-- By Subspecialty -->
         <div class="box">
           <div class="label">Performance by Subspecialty</div>
           <div style="margin-bottom:10px;">
@@ -226,32 +212,26 @@
           <canvas id="chartSubs" height="200"></canvas>
         </div>
 
-        <!-- Weekly Breakdown -->
         <div class="box">
           <div class="label">Weekly Activity</div>
           <canvas id="chartWeekly" height="140"></canvas>
         </div>
 
-        <!-- Most Missed Diagnoses -->
         <div class="box">
           <div class="label">Cases Needing Review (Lowest Scores)</div>
           <div id="missedCases" class="small" style="max-height:200px;overflow-y:auto;"></div>
         </div>
 
-        <!-- Grade Distribution -->
         <div class="box">
           <div class="label">Grade Distribution</div>
           <div style="display:flex;justify-content:center;align-items:center;height:250px;">
             <canvas id="chartGrades"></canvas>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
 
-      </div> <!-- Close charts grid -->
-    </div> <!-- Close modal-inner -->
-  </div> <!-- Close progressModal - THIS IS CRITICAL! -->
-  
-
-  <!-- App boot -->
   <script type="module">
     import './js/app.js';
   </script>
