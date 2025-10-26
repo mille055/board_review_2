@@ -343,7 +343,8 @@ export function initUI(){
       similarity: heur.similarity,
       rubricHit: heur.rubricHit,
       rubricTotal: (caseObj.rubric || []).length,
-      letter: letter(heur)
+      letter: letter(heur),
+      type: 'oral'
     });
     updateCounts();
     
@@ -554,7 +555,8 @@ function gradeMCQs(caseObj, form){
     similarity: score,
     rubricHit: nCorrect,
     rubricTotal: cards.length,
-    letter: score >= 0.75 ? 'A' : score >= 0.60 ? 'B' : score >= 0.50 ? 'C' : 'F'
+    letter: score >= 0.75 ? 'A' : score >= 0.60 ? 'B' : score >= 0.50 ? 'C' : 'F',
+    type: 'mcq'
   });
   updateCounts();
   console.log('✓ MCQ score saved');
