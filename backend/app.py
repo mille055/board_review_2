@@ -1,6 +1,6 @@
 # app.py
 import os, time, json, re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any, Literal
 
 from fastapi import FastAPI, HTTPException, Depends, Query, Request, Header, UploadFile, File, Form
@@ -41,7 +41,8 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 import boto3
 from botocore.config import Config as BotoConfig
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
-S3_BUCKET = os.getenv("S3_BUCKET")
+# Support both S3_BUCKET_NAME (local .env) and S3_BUCKET (AWS App Runner)
+S3_BUCKET = os.getenv("S3_BUCKET_NAME") or os.getenv("S3_BUCKET")
 s3_client = boto3.client("s3", region_name=AWS_REGION, config=BotoConfig(signature_version="s3v4"))
 
 # -----------------------------
@@ -62,7 +63,7 @@ def hash_pw(p: str) -> str: return pwd_ctx.hash(p)
 def verify_pw(p: str, h: str) -> bool: return pwd_ctx.verify(p, h)
 
 def create_access_token(sub: str) -> str:
-    payload = {"sub": sub, "exp": datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)}
+    payload = {"sub": sub, "exp": datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)}
     return jwt.encode(payload, SECRET, algorithm=ALGO)
 
 def _decode_jwt(token: str) -> str:
@@ -324,6 +325,16 @@ class Case(BaseModel):
     references: Optional[List[str]] = []
     mcqs: Optional[MCQSpec] = None
     differential: Optional[Differential] = None
+    
+    # MongoDB metadata fields (optional) - added to fix 500 error
+    created_at: Optional[int] = None
+    updated_at: Optional[int] = None
+    active: Optional[bool] = None
+    created_by: Optional[str] = None
+    deleted: Optional[bool] = None
+    
+    class Config:
+        extra = "allow"  # Allow extra fields from MongoDB without failing validation
 
 class UpsertResult(BaseModel):
     ok: bool
@@ -497,13 +508,22 @@ async def login(form: OAuth2PasswordRequestForm = Depends()):
 async def me(identity: str = Depends(current_identity)):
     return {"identity": identity, "isAdmin": (not ADMIN_EMAILS) or (identity.lower() in ADMIN_EMAILS)}
 
-@app.get("/api/cases", response_model=List[Case])
-async def list_cases(examMode: bool = False):
+# @app.get("/api/cases", response_model=List[Case])
+@app.get("/api/cases")
+async def list_cases(examMode: bool = False,
+                     include_deleted: bool = Query(default=False),
+                     identity: str = Depends(current_identity)
+                     ):
     if USE_MONGO:
-        cur = db.cases.find({})
+        query = {}
+        if not include_deleted:
+            query["deleted"] = {"$ne": True}
+        cur = db.cases.find(query, {"_id": 0})
         items = await cur.to_list(length=100000)
     else:
         items = _read_cases_file()
+        if not include_deleted:
+            items = [item for item in items if not item.get("deleted")]
     items.sort(key=lambda x: x.get("id",""))
     if examMode:
         for it in items:
@@ -604,17 +624,228 @@ async def upsert_case(body: Case, identity: str = Depends(current_identity)):
 async def delete_case(case_id: str, identity: str = Depends(current_identity)):
     require_admin(identity)
     if USE_MONGO:
-        res = await db.cases.delete_one({"id": case_id})
-        if res.deleted_count == 0: raise HTTPException(404, "Not found")
-        return {"ok": True}
+        result = await db.cases.update_one(
+            {"id": case_id},
+            {"$set": {
+                "deleted": True,
+                "deletedAt": datetime.now(timezone.utc).isoformat(),
+                "deletedBy": identity
+            }}
+        )
+        if result.matched_count == 0: raise HTTPException(404, "Not found")
+        return {"ok": True, "message": f"Case {case_id} moved to trash"}
     else:
         items = _read_cases_file()
-        n = len(items)
-        items = [x for x in items if x.get("id") != case_id]
-        if len(items) == n:
-            raise HTTPException(404, "Not found")
+        found = False
+        for item in items:
+            if item.get("id") == case_id:
+                item["deleted"] = True
+                item["deletedAt"] = datetime.now(timezone.utc).isoformat()
+                item["deletedBy"] = identity
+                found = True
+                break
+        
+        if not found:
+            raise HTTPException(404, "Case not found")
+        
         _write_cases_file(items)
-        return {"ok": True}
+        return {"ok": True, "message": f"Case {case_id} moved to trash"}
+    
+@app.post("/api/cases/{case_id}/restore")
+async def restore_case(case_id: str, identity: str = Depends(current_identity)):
+    """Restore a soft-deleted case"""
+    require_admin(identity)
+    
+    if USE_MONGO:
+        result = await db.cases.update_one(
+            {"id": case_id},
+            {"$unset": {
+                "deleted": "",
+                "deletedAt": "",
+                "deletedBy": ""
+            }}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(404, "Case not found")
+        
+        return {"ok": True, "message": f"Case {case_id} restored"}
+    else:
+        items = _read_cases_file()
+        found = False
+        for item in items:
+            if item.get("id") == case_id:
+                item.pop("deleted", None)
+                item.pop("deletedAt", None)
+                item.pop("deletedBy", None)
+                found = True
+                break
+        
+        if not found:
+            raise HTTPException(404, "Case not found")
+        
+        _write_cases_file(items)
+        return {"ok": True, "message": f"Case {case_id} restored"}
+
+@app.delete("/api/cases/{case_id}/permanent")
+async def permanently_delete_case(case_id: str, identity: str = Depends(current_identity)):
+    """PERMANENTLY delete a case (cannot be undone!)"""
+    require_admin(identity)
+    
+    if USE_MONGO:
+        result = await db.cases.delete_one({"id": case_id})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(404, "Case not found")
+        
+        return {"ok": True, "message": f"Case {case_id} permanently deleted"}
+    else:
+        items = _read_cases_file()
+        original_count = len(items)
+        items = [x for x in items if x.get("id") != case_id]
+        
+        if len(items) == original_count:
+            raise HTTPException(404, "Case not found")
+        
+        _write_cases_file(items)
+        return {"ok": True, "message": f"Case {case_id} permanently deleted"}
+
+@app.put("/api/cases/{case_id}")
+async def update_case(case_id: str, request: Request, identity: str = Depends(current_identity)):
+    """Update an existing case"""
+    require_admin(identity)
+    
+    body = await request.json()
+    
+    if USE_MONGO:
+        # Update in MongoDB
+        result = await db.cases.update_one(
+            {"id": case_id},
+            {"$set": {
+                "title": body.get("title"),
+                "subspecialty": body.get("subspecialty"),
+                "boardPrompt": body.get("boardPrompt"),
+                "expectedAnswer": body.get("expectedAnswer"),
+                "rubric": body.get("rubric", []),
+                "tags": body.get("tags", []),
+                "images": body.get("images", []),
+                "mcqs": body.get("mcqs"),
+                "updated_at": int(time.time() * 1000),
+                "updated_by": identity
+            }}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(404, "Case not found")
+        
+        # Return updated case
+        updated_case = await db.cases.find_one({"id": case_id}, {"_id": 0})
+        return updated_case
+    else:
+        items = _read_cases_file()
+        found = False
+        for item in items:
+            if item.get("id") == case_id:
+                item.update({
+                    "title": body.get("title"),
+                    "subspecialty": body.get("subspecialty"),
+                    "boardPrompt": body.get("boardPrompt"),
+                    "expectedAnswer": body.get("expectedAnswer"),
+                    "rubric": body.get("rubric", []),
+                    "tags": body.get("tags", []),
+                    "images": body.get("images", []),
+                    "mcqs": body.get("mcqs"),
+                    "updated_at": int(time.time() * 1000),
+                    "updated_by": identity
+                })
+                found = True
+                break
+        
+        if not found:
+            raise HTTPException(404, "Case not found")
+        
+        _write_cases_file(items)
+        return item
+
+@app.post("/api/cases/{case_id}/generate-mcqs")
+async def generate_mcqs(case_id: str, request: Request, identity: str = Depends(current_identity)):
+    """Generate MCQs for a case using LLM"""
+    require_admin(identity)
+    
+    body = await request.json()
+    
+    # Build prompt for MCQ generation
+    prompt = f"""Generate 3-5 high-quality multiple choice questions for this radiology case.
+
+Case Title: {body.get('title', '')}
+Subspecialty: {body.get('subspecialty', '')}
+Clinical History: {body.get('boardPrompt', '')}
+Expected Answer: {body.get('expectedAnswer', '')}
+
+Requirements:
+1. Each question should test important diagnostic or management concepts
+2. Include 4-5 answer choices per question
+3. Mark the correct answer(s) - can have multiple correct answers
+4. Provide a brief explanation for the correct answer(s)
+5. Make distractors plausible but clearly wrong to an expert
+6. Focus on imaging findings, differential diagnosis, or next steps
+
+Return JSON in this exact format:
+{{
+  "questions": [
+    {{
+      "stem": "Question text here?",
+      "multi_select": false,
+      "choices": [
+        {{"id": "a", "text": "Choice A text", "correct": false}},
+        {{"id": "b", "text": "Choice B text", "correct": true}},
+        {{"id": "c", "text": "Choice C text", "correct": false}},
+        {{"id": "d", "text": "Choice D text", "correct": false}}
+      ],
+      "explanation": "Brief explanation of why the answer is correct"
+    }}
+  ]
+}}
+
+Generate the MCQs now:"""
+
+    try:
+        if not openai_client:
+            raise HTTPException(status_code=500, detail="OpenAI client not configured")
+        
+        response = openai_client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": "You are an expert radiology educator creating board-style multiple choice questions. Return only valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=2000
+        )
+        
+        content = response.choices[0].message.content.strip()
+        
+        # Try to parse JSON - handle markdown code blocks if present
+        if content.startswith('```'):
+            content = content.split('```')[1]
+            if content.startswith('json'):
+                content = content[4:]
+        
+        mcqs = json.loads(content)
+        
+        # Validate structure
+        if 'questions' not in mcqs or not isinstance(mcqs['questions'], list):
+            raise ValueError("Invalid MCQ format")
+        
+        return mcqs
+        
+    except json.JSONDecodeError as e:
+        log.error(f"MCQ generation JSON parse error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse LLM response: {str(e)}")
+    except Exception as e:
+        log.error(f"MCQ generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"MCQ generation failed: {str(e)}")
+
 
 @app.post("/api/mcq/chat", response_model=MCQChatResponse)
 async def mcq_chat(body: MCQChatRequest, identity: str = Depends(current_identity)):
@@ -950,6 +1181,7 @@ async def admin_create_case(
     case_dict['created_at'] = int(time.time() * 1000)
     case_dict['updated_at'] = int(time.time() * 1000)
     case_dict['active'] = True
+    case_dict['deleted'] = False
     case_dict['created_by'] = identity
     
     if USE_MONGO:
@@ -989,3 +1221,74 @@ async def admin_list_cases(
         if not include_inactive:
             items = [x for x in items if x.get('active', True)]
         return items
+
+@app.post("/api/cases/{case_id}/generate-rubric")
+async def generate_rubric(case_id: str, request: Request, identity: str = Depends(current_identity)):
+    """Generate rubric points for a case using LLM"""
+    require_admin(identity)
+    
+    body = await request.json()
+    
+    prompt = f"""Generate a comprehensive grading rubric for this radiology oral boards case.
+
+Case Title: {body.get('title', '')}
+Subspecialty: {body.get('subspecialty', '')}
+Clinical History: {body.get('boardPrompt', '')}
+Expected Answer: {body.get('expectedAnswer', '')}
+
+Create 5-8 key rubric points that would be used to grade a trainee's oral presentation.
+
+Requirements:
+1. Each point should be clear, specific, and measurable
+2. Focus on what the trainee should identify, describe, or recommend
+3. Cover: study type, key findings, differential diagnosis, diagnosis, and management
+4. Be concise (one sentence per point)
+5. Use action verbs: "Identifies", "Describes", "States", "Discusses", "Recommends"
+
+Return JSON in this exact format:
+{{
+  "rubric": [
+    "Identifies the study type and technique",
+    "Describes the key imaging findings systematically",
+    "Provides a differential diagnosis with at least 2-3 possibilities",
+    "States the most likely diagnosis with supporting evidence",
+    "Discusses appropriate management or next steps"
+  ]
+}}
+
+Generate the rubric now:"""
+
+    try:
+        if not openai_client:
+            raise HTTPException(status_code=500, detail="OpenAI client not configured")
+        
+        response = openai_client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": "You are an expert radiology educator creating grading rubrics for oral boards. Return only valid JSON."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.5,
+            max_tokens=800
+        )
+        
+        content = response.choices[0].message.content.strip()
+        
+        if content.startswith('```'):
+            content = content.split('```')[1]
+            if content.startswith('json'):
+                content = content[4:]
+        
+        result = json.loads(content)
+        
+        if 'rubric' not in result or not isinstance(result['rubric'], list):
+            raise ValueError("Invalid rubric format")
+        
+        return result
+        
+    except json.JSONDecodeError as e:
+        log.error(f"Rubric generation JSON parse error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse LLM response: {str(e)}")
+    except Exception as e:
+        log.error(f"Rubric generation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Rubric generation failed: {str(e)}")
