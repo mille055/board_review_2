@@ -345,6 +345,7 @@ async function bulkDeleteCases() {
 }
 
 /* ---------- Open Edit Case Modal ---------- */
+/* ---------- IMPROVED: Open Edit Case Modal with Compact UI ---------- */
 async function openEditCaseModal(caseData) {
   // Fetch fresh case data from database to get latest MCQs and rubric
   let freshCaseData = caseData;
@@ -376,66 +377,78 @@ async function openEditCaseModal(caseData) {
       </div>
       
       <form id="editCaseForm">
-        <div style="display:grid; gap:16px;">
+        <div style="display:grid; gap:12px;">
+          <!-- Compact Title -->
           <div>
-            <label class="label">Title *</label>
-            <input type="text" name="title" class="input" required value="${escapeHtml(freshCaseData.title || '')}">
+            <label class="label" style="margin-bottom:4px;">Title *</label>
+            <input type="text" name="title" class="input" required value="${escapeHtml(freshCaseData.title || '')}" style="padding:8px;">
           </div>
           
+          <!-- Compact Subspecialty -->
           <div>
-            <label class="label">Subspecialty *</label>
-            <select name="subspecialty" class="input" required>
+            <label class="label" style="margin-bottom:4px;">Subspecialty *</label>
+            <select name="subspecialty" class="input" required style="padding:8px;">
               ${SUBS.map(s => `<option value="${s}" ${s === freshCaseData.subspecialty ? 'selected' : ''}>${s}</option>`).join('')}
             </select>
           </div>
           
+          <!-- Compact Clinical History -->
           <div>
-            <label class="label">Clinical History / Board Prompt *</label>
-            <textarea name="boardPrompt" class="input" rows="4" required>${escapeHtml(freshCaseData.boardPrompt || '')}</textarea>
+            <label class="label" style="margin-bottom:4px;">Clinical History / Board Prompt *</label>
+            <textarea name="boardPrompt" class="input" rows="2" required style="padding:8px; resize:vertical; min-height:60px;">${escapeHtml(freshCaseData.boardPrompt || '')}</textarea>
+            <small style="color:#888; font-size:11px;">Resize if needed</small>
           </div>
           
+          <!-- Compact Expected Answer -->
           <div>
-            <label class="label">Expected Answer *</label>
-            <textarea name="expectedAnswer" class="input" rows="6" required>${escapeHtml(freshCaseData.expectedAnswer || '')}</textarea>
+            <label class="label" style="margin-bottom:4px;">Expected Answer *</label>
+            <textarea name="expectedAnswer" class="input" rows="3" required style="padding:8px; resize:vertical; min-height:80px;">${escapeHtml(freshCaseData.expectedAnswer || '')}</textarea>
+            <small style="color:#888; font-size:11px;">Resize if needed</small>
           </div>
           
-          <div style="border-top:1px solid #ddd; padding-top:16px; margin-top:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <!-- Rubric Section -->
+          <div style="border-top:1px solid #333; padding-top:12px; margin-top:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
               <label class="label" style="margin:0;">Rubric / Key Points</label>
-              <div style="display:flex; gap:8px;">
-                <button type="button" class="btn ghost" id="batchImportRubricBtn">📋 Batch Import</button>
-                <button type="button" class="btn ghost" id="addBlankRubricBtn">+ Add Point</button>
-                <button type="button" class="btn ghost" id="generateRubricBtn">✨ Generate with AI</button>
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="btn ghost" id="batchImportRubricBtn" style="padding:6px 10px; font-size:12px;">📋 Import</button>
+                <button type="button" class="btn ghost" id="addBlankRubricBtn" style="padding:6px 10px; font-size:12px;">+ Add</button>
+                <button type="button" class="btn ghost" id="generateRubricBtn" style="padding:6px 10px; font-size:12px;">✨ AI</button>
               </div>
             </div>
-            <div id="rubricEditor" style="background:#0f1013; padding:16px; border-radius:8px; border:1px solid #2a2a2f; min-height:100px;">
+            <div id="rubricEditor" style="background:#0f1013; padding:12px; border-radius:6px; border:1px solid #2a2a2f; min-height:80px;">
               <!-- Rubric points will be rendered here -->
             </div>
           </div>
           
+          <!-- Compact Tags -->
           <div>
-            <label class="label">Tags (comma-separated)</label>
-            <input type="text" name="tags" class="input" value="${(freshCaseData.tags || []).join(', ')}">
+            <label class="label" style="margin-bottom:4px;">Tags (comma-separated)</label>
+            <input type="text" name="tags" class="input" value="${(freshCaseData.tags || []).join(', ')}" style="padding:8px;">
           </div>
           
+          <!-- Compact Image URLs -->
           <div>
-            <label class="label">Image URLs (one per line)</label>
-            <textarea name="images" class="input" rows="4" placeholder="https://...&#10;https://...">${(freshCaseData.images || []).join('\n')}</textarea>
+            <label class="label" style="margin-bottom:4px;">Image URLs (one per line)</label>
+            <textarea name="images" class="input" rows="2" placeholder="https://...&#10;https://..." style="padding:8px; resize:vertical; min-height:60px; font-size:11px;">${(freshCaseData.images || []).join('\n')}</textarea>
+            <small style="color:#888; font-size:11px;">Resize if needed</small>
           </div>
           
-          <div style="border-top:1px solid #ddd; padding-top:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <!-- MCQ Section -->
+          <div style="border-top:1px solid #333; padding-top:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
               <label class="label" style="margin:0;">Multiple Choice Questions</label>
-              <div style="display:flex; gap:8px;">
-                <button type="button" class="btn ghost" id="addBlankMCQBtn">+ Add Blank Question</button>
-                <button type="button" class="btn ghost" id="generateOneMCQBtn">✨ Generate 1 MCQ</button>
-                <button type="button" class="btn ghost" id="generateMCQBtn">✨ Generate 3-5 MCQs</button>
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="btn ghost" id="addBlankMCQBtn" style="padding:6px 10px; font-size:12px;">+ Add</button>
+                <button type="button" class="btn ghost" id="generateOneMCQBtn" style="padding:6px 10px; font-size:12px;">✨ Gen 1</button>
+                <button type="button" class="btn ghost" id="generateMCQBtn" style="padding:6px 10px; font-size:12px;">✨ Gen 3-5</button>
               </div>
             </div>
             <div id="mcqEditor"></div>
           </div>
           
-          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+          <!-- Action Buttons -->
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px; padding-top:12px; border-top:1px solid #333;">
             <button type="button" class="btn ghost" id="cancelEdit">Cancel</button>
             <button type="submit" class="btn">Save Changes</button>
           </div>
@@ -468,8 +481,6 @@ async function openEditCaseModal(caseData) {
     await saveEditedCase(freshCaseData.id, e.target);
     modal.remove();
   };
-  
-  modal.querySelector('.modal-backdrop').onclick = () => modal.remove();
 }
 
 /* ---------- Render Rubric Editor ---------- */

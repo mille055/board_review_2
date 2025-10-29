@@ -86,23 +86,6 @@
           <div id="vBoardPrompt" class="box small" style="white-space:pre-wrap"></div>
         </div>
 
-        <!-- Show Answer button and hidden content -->
-        <div class="section">
-          <button class="btn ghost" id="showAnswerBtn" style="width:100%">Show Answer & Rubric</button>
-          
-          <div id="answerSection" style="display:none;">
-            <div style="margin-top:12px;">
-              <div class="label">Expected Answer</div>
-              <div id="vAnswer" class="small box" style="white-space:pre-wrap"></div>
-            </div>
-            
-            <div style="margin-top:12px;">
-              <div class="label">Rubric (critical points)</div>
-              <div id="vRubric" class="small box"></div>
-            </div>
-          </div>
-        </div>
-
         <!-- ORAL mode pane -->
         <div id="oralPane">
           <div class="section">
@@ -130,6 +113,23 @@
         <!-- MCQ mode pane -->
         <div id="mcqPane" style="display:none"></div>
 
+        <!-- Show Answer button and hidden content -->
+        <div class="section">
+          <button class="btn ghost" id="showAnswerBtn" style="width:100%">Show Answer & Rubric</button>
+          
+          <div id="answerSection" style="display:none;">
+            <div style="margin-top:12px;">
+              <div class="label">Expected Answer</div>
+              <div id="vAnswer" class="small box" style="white-space:pre-wrap"></div>
+            </div>
+            
+            <div style="margin-top:12px;">
+              <div class="label">Rubric (critical points)</div>
+              <div id="vRubric" class="small box"></div>
+            </div>
+          </div>
+        </div>
+        
         <!-- LLM chat panel -->
         <div class="section">
           <button class="btn ghost" id="llmAskBtn" style="width:100%">Ask the LLM</button>
