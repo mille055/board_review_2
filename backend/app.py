@@ -620,6 +620,20 @@ async def upsert_case(body: Case, identity: str = Depends(current_identity)):
         _write_cases_file(items)
         return UpsertResult(ok=True, id=body.id)
 
+@app.get("/api/cases/trash")
+async def get_trash(identity: str = Depends(current_identity)):
+    """Get all deleted cases"""
+    if USE_MONGO:
+        # Find cases where deleted = True
+        cur = db.cases.find({"deleted": True}, {"_id": 0})
+        items = await cur.to_list(length=100000)
+    else:
+        items = _read_cases_file()
+        items = [item for item in items if item.get("deleted")]
+    
+    items.sort(key=lambda x: x.get("id", ""))
+    return items
+
 @app.delete("/api/cases/{case_id}")
 async def delete_case(case_id: str, identity: str = Depends(current_identity)):
     require_admin(identity)

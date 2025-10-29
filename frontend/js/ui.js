@@ -1047,7 +1047,11 @@ async function saveEditedCase(caseId, form) {
     expectedAnswer: formData.get('expectedAnswer'),
     rubric: rubric,
     tags: formData.get('tags').split(',').map(s => s.trim()).filter(Boolean),
-    images: formData.get('images').split('\n').map(s => s.trim()).filter(Boolean),
+    // images: formData.get('images').split('\n').map(s => s.trim()).filter(Boolean),
+    images: formData.get('images').split('\n')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(url => url.split('?')[0]), // Strip tokens before saving
     mcqs: mcqs.questions.length > 0 ? mcqs : null
   };
   
