@@ -2,7 +2,8 @@ import { SUBS, CONFIG } from './config.js';
 import { getAll, setCases } from './store.js';
 import { openViewer as openViewerBase } from './viewer.js';
 import { toggleMic, getTranscript } from './speech.js';
-import { gradeHeuristic, heuristicFeedback, buildLLMPayload, letter } from './grade.js';
+// import { gradeHeuristic, heuristicFeedback, buildLLMPayload, letter } from './grade.js';
+import {letter} from './grade.js';
 import { recordAttempt, getStats } from './progress.js';
 
 const chips   = document.getElementById('chips');
@@ -1386,55 +1387,139 @@ export function initUI(){
 
   document.getElementById('vMicBtn')?.addEventListener('click', toggleMic);
 
-  document.getElementById('gradeBtn')?.addEventListener('click', async ()=>{
-    const transcriptEl = document.getElementById('vTranscript');
-    const tr = transcriptEl ? transcriptEl.value.trim() : '';
+  // document.getElementById('gradeBtn')?.addEventListener('click', async ()=>{
+  //   const transcriptEl = document.getElementById('vTranscript');
+  //   const tr = transcriptEl ? transcriptEl.value.trim() : '';
   
-    if(!tr) return alert('No transcript. Use mic or type your response.');
+  //   if(!tr) return alert('No transcript. Use mic or type your response.');
   
-    const caseObj = window.__currentCaseForGrading;
-    if(!caseObj) return;
+  //   const caseObj = window.__currentCaseForGrading;
+  //   if(!caseObj) return;
 
-    const heur = gradeHeuristic({
-      transcript: tr,
-      promptTxt: caseObj.boardPrompt || '',
-      expected:  caseObj.expectedAnswer || '',
-      rubric:    caseObj.rubric || []
-    });
+  //   const heur = gradeHeuristic({
+  //     transcript: tr,
+  //     promptTxt: caseObj.boardPrompt || '',
+  //     expected:  caseObj.expectedAnswer || '',
+  //     rubric:    caseObj.rubric || []
+  //   });
 
-    if (vFeedback) vFeedback.textContent = heuristicFeedback(heur);
-    if (vScore)    vScore.textContent = `${Math.round(heur.similarity*100)}% • ${heur.rubricHit}/${(caseObj.rubric||[]).length} • ${letter(heur)}`;
+  //   if (vFeedback) vFeedback.textContent = heuristicFeedback(heur);
+  //   if (vScore)    vScore.textContent = `${Math.round(heur.similarity*100)}% • ${heur.rubricHit}/${(caseObj.rubric||[]).length} • ${letter(heur)}`;
 
-    if (CONFIG?.FEEDBACK_MODE && CONFIG.FEEDBACK_MODE !== 'heuristic') {
-      try {
-        const mod = await import('./grade.js');
-        if (typeof mod.gradeWithLLM === 'function' && CONFIG.FEEDBACK_MODE !== 'heuristic') {
-          const llm = await mod.gradeWithLLM({caseObj, transcript: tr, heur});
-          if (llm?.feedback && vFeedback) {
-            vFeedback.textContent += (vFeedback.textContent ? '\n\n— LLM feedback —\n' : '') + llm.feedback;
-          }
-        }
-      } catch (e) {
-        console.error('[UI] LLM call failed', e);
-        if (vFeedback) vFeedback.textContent += `\n\n— LLM error —\n${e.message || e}`;
-      }
+  //   if (CONFIG?.FEEDBACK_MODE && CONFIG.FEEDBACK_MODE !== 'heuristic') {
+  //     try {
+  //       const mod = await import('./grade.js');
+  //       if (typeof mod.gradeWithLLM === 'function' && CONFIG.FEEDBACK_MODE !== 'heuristic') {
+  //         const llm = await mod.gradeWithLLM({caseObj, transcript: tr, heur});
+  //         if (llm?.feedback && vFeedback) {
+  //           vFeedback.textContent += (vFeedback.textContent ? '\n\n— LLM feedback —\n' : '') + llm.feedback;
+  //         }
+  //       }
+  //     } catch (e) {
+  //       console.error('[UI] LLM call failed', e);
+  //       if (vFeedback) vFeedback.textContent += `\n\n— LLM error —\n${e.message || e}`;
+  //     }
+  //   }
+
+  //   recordAttempt({
+  //     caseId: caseObj.id,
+  //     subspecialty: caseObj.subspecialty || 'Unknown',
+  //     similarity: heur.similarity,
+  //     rubricHit: heur.rubricHit,
+  //     rubricTotal: (caseObj.rubric || []).length,
+  //     letter: letter(heur),
+  //     type: 'oral'
+  //   });
+  //   updateCounts();
+    
+  //   // Show feedback section after grading
+  //   const feedbackSection = document.getElementById('feedbackSection');
+  //   if (feedbackSection) feedbackSection.style.display = 'block';
+  // });
+
+document.getElementById('gradeBtn')?.addEventListener('click', async () => {
+  const transcriptEl = document.getElementById('vTranscript');
+  const tr = transcriptEl ? transcriptEl.value.trim() : '';
+
+  if (!tr) return alert('No transcript. Use mic or type your response.');
+
+  const caseObj = window.__currentCaseForGrading;
+  if (!caseObj) return;
+
+  // Show loading state immediately (no heuristic!)
+  if (vFeedback) vFeedback.textContent = '⏳ Grading your answer with AI...';
+  if (vScore) vScore.textContent = 'Grading...';
+
+  try {
+    // Call LLM grading directly
+    const mod = await import('./grade.js');
+    
+    if (typeof mod.gradeWithLLM !== 'function') {
+      throw new Error('LLM grading not available');
     }
 
+    // Call LLM (no heuristic parameter needed!)
+    const llm = await mod.gradeWithLLM({
+      caseObj, 
+      transcript: tr, 
+      heur: null
+    });
+
+    // Use LLM score for everything
+    const score = llm.score || {
+      similarity: 0,
+      rubricHit: 0,
+      rubricMiss: caseObj.rubric?.length || 0,
+      hits: [],
+      misses: caseObj.rubric || []
+    };
+
+    // Update feedback display
+    if (vFeedback && llm.feedback) {
+      vFeedback.textContent = llm.feedback;
+    }
+
+    // Update score display
+    const totalRubric = (caseObj.rubric || []).length;
+    const rubricScore = `${score.rubricHit}/${totalRubric}`;
+    const percentScore = `${Math.round(score.similarity * 100)}%`;
+    const gradeScore = letter(score);
+    
+    if (vScore) {
+      vScore.textContent = `${percentScore} • ${rubricScore} • ${gradeScore}`;
+    }
+
+    // Record attempt with LLM score
     recordAttempt({
       caseId: caseObj.id,
       subspecialty: caseObj.subspecialty || 'Unknown',
-      similarity: heur.similarity,
-      rubricHit: heur.rubricHit,
-      rubricTotal: (caseObj.rubric || []).length,
-      letter: letter(heur),
+      similarity: score.similarity,
+      rubricHit: score.rubricHit,
+      rubricTotal: totalRubric,
+      letter: gradeScore,
       type: 'oral'
     });
-    updateCounts();
     
-    // Show feedback section after grading
-    const feedbackSection = document.getElementById('feedbackSection');
-    if (feedbackSection) feedbackSection.style.display = 'block';
-  });
+    updateCounts();
+
+  } catch (e) {
+    console.error('[UI] LLM grading failed', e);
+    
+    // Show error message
+    if (vFeedback) {
+      vFeedback.textContent = `❌ Grading failed: ${e.message || e}\n\nPlease try again or check your connection.`;
+    }
+    if (vScore) {
+      vScore.textContent = 'Error';
+    }
+    
+    return; // Don't record attempt if grading failed
+  }
+
+  // Show feedback section after grading
+  const feedbackSection = document.getElementById('feedbackSection');
+  if (feedbackSection) feedbackSection.style.display = 'block';
+});
 
   // Bridge to viewer
   window.openViewer = async (c)=>{
