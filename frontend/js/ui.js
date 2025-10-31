@@ -13,6 +13,51 @@ const countEl = document.getElementById('count');
 const vFeedback = document.getElementById('vFeedback');
 const vScore    = document.getElementById('vScore');
 
+// Sidebar notification helper
+let notificationTimeout = null;
+function showSidebarNotification(message, duration = 0) {
+  // Create or update notification element in sidebar
+  let notif = document.querySelector('.sidebar-notification');
+  if (!notif) {
+    notif = document.createElement('div');
+    notif.className = 'sidebar-notification';
+    notif.style.cssText = `
+      padding: 12px;
+      margin: 12px 0;
+      background: rgba(110, 168, 254, 0.1);
+      border: 1px solid rgba(110, 168, 254, 0.3);
+      border-radius: 8px;
+      color: #6EA8FE;
+      font-size: 14px;
+      text-align: center;
+    `;
+    // Insert after the grade button section
+    const gradeBtn = document.getElementById('gradeBtn');
+    if (gradeBtn && gradeBtn.parentElement) {
+      gradeBtn.parentElement.parentElement.insertAdjacentElement('afterend', notif);
+    }
+  }
+  
+  notif.textContent = message;
+  notif.style.display = 'block';
+  
+  // Clear existing timeout
+  if (notificationTimeout) clearTimeout(notificationTimeout);
+  
+  // Auto-hide after duration (0 = don't auto-hide)
+  if (duration > 0) {
+    notificationTimeout = setTimeout(() => {
+      notif.style.display = 'none';
+    }, duration);
+  }
+}
+
+function hideSidebarNotification() {
+  const notif = document.querySelector('.sidebar-notification');
+  if (notif) notif.style.display = 'none';
+  if (notificationTimeout) clearTimeout(notificationTimeout);
+}
+
 // ===== Mode (oral | mcq) =====
 let mode = (localStorage.getItem('mode') || 'oral');
 
@@ -302,20 +347,29 @@ async function deleteCase(caseId) {
   
   try {
     const token = localStorage.getItem('jwt');
+    console.log('[Delete] Soft deleting case:', caseId);
+    
     const response = await fetch(`${CONFIG.API_BASE}/api/cases/${caseId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
+    console.log('[Delete] Response:', response.status);
+    
     if (!response.ok) {
-      throw new Error(`Failed to delete: ${response.status}`);
+      const errorText = await response.text();
+      console.error('[Delete] Error:', errorText);
+      throw new Error(`Failed to delete: ${response.status} - ${errorText}`);
     }
     
-    alert('Case moved to trash (click 🗑️ Trash to restore)');
+    const result = await response.json().catch(() => null);
+    console.log('[Delete] Result:', result);
+    
+    alert('✅ Case moved to trash (click 🗑️ Trash to restore)');
     await loadCasesFromDatabase();
   } catch (error) {
-    console.error('Delete failed:', error);
-    alert(`Failed to delete case: ${error.message}`);
+    console.error('[Delete] Failed:', error);
+    alert(`❌ Failed to delete case: ${error.message}`);
   }
 }
 
@@ -374,7 +428,10 @@ async function openEditCaseModal(caseData) {
     <div class="modal-inner" style="max-width:900px; max-height:90vh; overflow-y:auto;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
         <h3 style="margin:0;">Edit Case: ${escapeHtml(freshCaseData.title)}</h3>
-        <button class="btn ghost" id="closeEditModal">Close</button>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn ghost" id="addNewCaseBtn" style="background:#4CAF50; color:white;">+ New Case</button>
+          <button class="btn ghost" id="closeEditModal">Close</button>
+        </div>
       </div>
       
       <form id="editCaseForm">
@@ -470,6 +527,10 @@ async function openEditCaseModal(caseData) {
   // Bind events
   document.getElementById('closeEditModal').onclick = () => modal.remove();
   document.getElementById('cancelEdit').onclick = () => modal.remove();
+  document.getElementById('addNewCaseBtn').onclick = () => {
+    modal.remove();
+    window.location.href = '/admin.html';
+  };
   document.getElementById('addBlankMCQBtn').onclick = () => openBlankMCQComposer();
   document.getElementById('generateOneMCQBtn').onclick = () => generateMCQs(freshCaseData, 1);
   document.getElementById('generateMCQBtn').onclick = () => generateMCQs(freshCaseData, 5);
@@ -495,10 +556,10 @@ function renderRubricEditor(rubricPoints) {
   }
   
   editor.innerHTML = rubricPoints.map((point, idx) => `
-    <div class="box" style="margin-bottom:8px; display:flex; gap:8px; align-items:start; background:#1a1a1f; border:1px solid #2a2a2f;">
-      <span style="color:#666; min-width:24px; margin-top:8px;">${idx + 1}.</span>
-      <textarea class="input rubric-point" data-idx="${idx}" rows="2" style="flex:1; background:#0f1013; border:1px solid #2a2a2f;">${escapeHtml(point)}</textarea>
-      <button type="button" class="btn ghost" style="padding:4px 8px; margin-top:4px;" onclick="removeRubricPoint(${idx})">✕</button>
+    <div class="box" style="margin-bottom:8px; display:flex; gap:8px; align-items:start; background:#1a1a1f; border:1px solid #2a2a2f; padding:8px;">
+      <span style="color:#666; min-width:24px; margin-top:6px;">${idx + 1}.</span>
+      <textarea class="input rubric-point" data-idx="${idx}" rows="2" style="flex:1; background:#0f1013; border:1px solid #2a2a2f; padding:6px; font-size:13px; resize:vertical; min-height:48px; max-height:200px;">${escapeHtml(point)}</textarea>
+      <button type="button" class="btn ghost" style="padding:4px 8px; margin-top:2px; font-size:12px;" onclick="removeRubricPoint(${idx})">✕</button>
     </div>
   `).join('');
 }
@@ -1170,21 +1231,41 @@ async function openTrashModal() {
 async function loadTrash() {
   try {
     const token = localStorage.getItem('jwt');
+    console.log('[Trash] Fetching from:', `${CONFIG.API_BASE}/api/cases/trash`);
+    
     const response = await fetch(`${CONFIG.API_BASE}/api/cases/trash`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
+    console.log('[Trash] Response status:', response.status);
+    
+    if (response.status === 404) {
+      throw new Error('Trash endpoint not found (404). The backend may not support trash functionality yet.');
+    }
+    
     if (!response.ok) {
-      throw new Error(`Failed to load trash: ${response.status}`);
+      const errorText = await response.text();
+      console.error('[Trash] Error response:', errorText);
+      throw new Error(`Failed to load trash: ${response.status} - ${errorText}`);
     }
     
     const deletedCases = await response.json();
+    console.log('[Trash] Loaded cases:', deletedCases.length);
     renderTrash(deletedCases);
   } catch (error) {
-    console.error('Failed to load trash:', error);
+    console.error('[Trash] Failed to load trash:', error);
     document.getElementById('trashList').innerHTML = `
       <div class="small" style="text-align:center; padding:40px; color:#EF5350;">
-        Failed to load trash: ${error.message}
+        <p style="margin-bottom:12px;">Failed to load trash</p>
+        <p style="color:#999; font-size:12px; margin-bottom:16px;">${error.message}</p>
+        ${error.message.includes('404') ? `
+          <p style="color:#999; font-size:12px; max-width:400px; margin:0 auto;">
+            The trash feature requires backend support. Make sure your backend has the following endpoints:
+            <br>• GET /api/cases/trash
+            <br>• POST /api/cases/{id}/restore
+            <br>• DELETE /api/cases/{id}/permanent
+          </p>
+        ` : ''}
       </div>
     `;
   }
@@ -1237,20 +1318,30 @@ window.restoreCase = async function(caseId) {
   
   try {
     const token = localStorage.getItem('jwt');
+    console.log('[Trash] Restoring case:', caseId);
+    
     const response = await fetch(`${CONFIG.API_BASE}/api/cases/${caseId}/restore`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
+    console.log('[Trash] Restore response:', response.status);
+    
+    if (response.status === 404) {
+      throw new Error('Restore endpoint not found. The backend may not support this feature yet.');
+    }
+    
     if (!response.ok) {
-      throw new Error(`Failed to restore: ${response.status}`);
+      const errorText = await response.text();
+      console.error('[Trash] Restore error:', errorText);
+      throw new Error(`Failed to restore: ${response.status} - ${errorText}`);
     }
     
     alert('Case restored successfully!');
     await loadTrash();
     await loadCasesFromDatabase();
   } catch (error) {
-    console.error('Restore failed:', error);
+    console.error('[Trash] Restore failed:', error);
     alert(`Failed to restore case: ${error.message}`);
   }
 }
@@ -1262,19 +1353,29 @@ window.permanentlyDeleteCase = async function(caseId) {
   
   try {
     const token = localStorage.getItem('jwt');
+    console.log('[Trash] Permanently deleting case:', caseId);
+    
     const response = await fetch(`${CONFIG.API_BASE}/api/cases/${caseId}/permanent`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
     
+    console.log('[Trash] Delete response:', response.status);
+    
+    if (response.status === 404) {
+      throw new Error('Delete endpoint not found. The backend may not support this feature yet.');
+    }
+    
     if (!response.ok) {
-      throw new Error(`Failed to delete: ${response.status}`);
+      const errorText = await response.text();
+      console.error('[Trash] Delete error:', errorText);
+      throw new Error(`Failed to delete: ${response.status} - ${errorText}`);
     }
     
     alert('Case permanently deleted');
     await loadTrash();
   } catch (error) {
-    console.error('Permanent delete failed:', error);
+    console.error('[Trash] Permanent delete failed:', error);
     alert(`Failed to delete case: ${error.message}`);
   }
 }
@@ -1337,6 +1438,232 @@ function formatDeletedDate(isoString) {
   }
 }
 
+/* ---------- Random Exam: One case from each category ---------- */
+let randomExamQueue = [];
+let randomExamIndex = 0;
+let randomExamOpenedCases = []; // Track which cases were actually opened
+let isInRandomExam = false; // Flag to track if we're in exam mode
+
+function startRandomExam() {
+  const all = getAll();
+  if (!all.length) return alert('No cases loaded.');
+  
+  console.log('[Random Exam] Total cases available:', all.length);
+  
+  // Define category groups (combining GI/GU/Ultrasound into one, excluding Physics)
+  const categories = {
+    'Neuroradiology': [],
+    'Cardiac/Chest': ['Thoracic Radiology'],
+    'Musculoskeletal Radiology': [],
+    'Abdominal/GU/US': ['Gastrointestinal Radiology', 'Genitourinary Radiology', 'Ultrasound'],
+    'Pediatric Radiology': []
+  };
+  
+  // Group cases by category with strict validation
+  all.forEach(c => {
+    const sub = c.subspecialty;
+    
+    // Skip Physics
+    if (sub === 'Physics') {
+      console.log('[Random Exam] Skipping Physics case:', c.id);
+      return;
+    }
+    
+    // STRICT validation - must have all required fields
+    if (!c || !c.id) {
+      console.warn('[Random Exam] Skipping case without ID:', c);
+      return;
+    }
+    
+    // Check for images - handle both array and media formats
+    const hasImages = (Array.isArray(c.images) && c.images.length > 0 && c.images[0]) ||
+                      (Array.isArray(c.media) && c.media.length > 0);
+    
+    if (!hasImages) {
+      console.warn('[Random Exam] Skipping case without images:', c.id, c.title);
+      return;
+    }
+    
+    // Must have clinical content
+    if (!c.boardPrompt || !c.expectedAnswer || !c.rubric || c.rubric.length === 0) {
+      console.warn('[Random Exam] Skipping incomplete case:', c.id, c.title);
+      return;
+    }
+    
+    // Check each category
+    for (const [catName, subs] of Object.entries(categories)) {
+      if (subs.length === 0) {
+        // Direct match (e.g., Neuroradiology)
+        if (sub === catName) {
+          categories[catName].push(c);
+          console.log('[Random Exam] Added to', catName, ':', c.id, c.title);
+        }
+      } else {
+        // Multiple subspecialties in this category
+        if (subs.includes(sub)) {
+          categories[catName].push(c);
+          console.log('[Random Exam] Added to', catName, ':', c.id, c.title);
+        }
+      }
+    }
+  });
+  
+  // Log category counts
+  for (const [catName, cases] of Object.entries(categories)) {
+    console.log(`[Random Exam] ${catName}: ${cases.length} valid cases`);
+  }
+  
+  // Select one random case from each category that has cases
+  randomExamQueue = [];
+  const selectedCategories = [];
+  
+  for (const [catName, cases] of Object.entries(categories)) {
+    if (cases.length > 0) {
+      const randomCase = cases[Math.floor(Math.random() * cases.length)];
+      randomExamQueue.push(randomCase);
+      selectedCategories.push(catName);
+      console.log(`[Random Exam] Selected from ${catName}:`, randomCase.id, randomCase.title);
+    }
+  }
+  
+  if (randomExamQueue.length === 0) {
+    return alert('No cases available for Random Exam.\n\nMake sure your cases have:\n- Images\n- Clinical history\n- Expected answer\n- Rubric items');
+  }
+  
+  // Shuffle the queue for variety
+  randomExamQueue = shuffle(randomExamQueue);
+  randomExamIndex = 0;
+  randomExamOpenedCases = []; // Reset opened cases tracking
+  isInRandomExam = true; // Set exam mode flag
+  
+  // Log detailed info about selected cases
+  console.log('🎯 Random Exam started with', randomExamQueue.length, 'cases');
+  randomExamQueue.forEach((c, idx) => {
+    console.log(`  [${idx}]: ${c?.id || 'NULL'} - ${c?.title || 'NULL'}`);
+  });
+  
+  // Show notification about the exam
+  const catList = selectedCategories.join(', ');
+  alert(`Random Exam Started!\n\n${randomExamQueue.length} cases selected (one from each category):\n${catList}\n\nCases will flow automatically. Close the viewer to exit.`);
+  
+  // Open first case
+  openRandomExamCase();
+}
+
+function openRandomExamCase() {
+  console.log(`[openRandomExamCase] Index: ${randomExamIndex}, Queue length: ${randomExamQueue.length}, In exam: ${isInRandomExam}`);
+  
+  if (!isInRandomExam || randomExamIndex >= randomExamQueue.length) {
+    // Exam complete - get performance data
+    const stats = getStats();
+    const caseIds = randomExamOpenedCases.map(c => c.id);
+    
+    console.log('[Random Exam Summary] Opened cases:', caseIds);
+    console.log('[Random Exam Summary] All attempts:', stats.attempts);
+    
+    const attempts = stats.attempts.filter(a => caseIds.includes(a.caseId));
+    console.log('[Random Exam Summary] Filtered attempts:', attempts);
+    
+    // Build summary using only cases that were actually opened
+    let summary = `🎉 Random Exam Complete!\n\nYou reviewed ${randomExamOpenedCases.length} cases:\n\n`;
+    
+    randomExamOpenedCases.forEach((c, idx) => {
+      // Get the MOST RECENT attempt for this case
+      const caseAttempts = attempts.filter(a => a.caseId === c.id);
+      const attempt = caseAttempts.length > 0 ? caseAttempts[caseAttempts.length - 1] : null;
+      
+      console.log(`[Random Exam Summary] Case ${c.id}:`, attempt);
+      
+      const score = attempt ? `${Math.round(attempt.similarity * 100)}% (${attempt.letter})` : 'Not graded';
+      summary += `${idx + 1}. ${c.title} - ${score}\n`;
+    });
+    
+    alert(summary);
+    
+    // Reset exam state
+    randomExamQueue = [];
+    randomExamOpenedCases = [];
+    randomExamIndex = 0;
+    isInRandomExam = false;
+    hideSidebarNotification();
+    return;
+  }
+  
+  const currentCase = randomExamQueue[randomExamIndex];
+  
+  // CRITICAL: Validate case before opening
+  if (!currentCase || !currentCase.id) {
+    console.error(`❌ Invalid case at index ${randomExamIndex}:`, currentCase);
+    console.error('❌ Full queue:', randomExamQueue.map((c, i) => `[${i}]: ${c?.id || 'NULL'} - ${c?.title || 'NULL'}`));
+    
+    // Skip this invalid case
+    randomExamIndex++;
+    
+    // Try next case or end exam
+    if (randomExamIndex < randomExamQueue.length) {
+      setTimeout(() => openRandomExamCase(), 100);
+    } else {
+      alert('Exam ended due to invalid case data.');
+      isInRandomExam = false;
+      hideSidebarNotification();
+    }
+    return;
+  }
+  
+  const caseNum = randomExamIndex + 1;
+  const totalCases = randomExamQueue.length;
+  
+  console.log(`📝 Opening case ${caseNum}/${totalCases}:`, currentCase.id, '-', currentCase.title);
+  
+  // Track this case as opened
+  randomExamOpenedCases.push(currentCase);
+  
+  // Show progress notification
+  showSidebarNotification(`Random Exam: Case ${randomExamOpenedCases.length} of ${totalCases}`, 0);
+  
+  // Open the case
+  window.openViewer(currentCase);
+  
+  // Set up auto-advance when viewer closes
+  setupRandomExamAdvance();
+}
+
+function setupRandomExamAdvance() {
+  // Find the close button and store original handler
+  const closeBtn = document.getElementById('closeViewer');
+  if (!closeBtn) return;
+  
+  // Store the original handler if we haven't already
+  if (!closeBtn._originalHandler) {
+    closeBtn._originalHandler = closeBtn.onclick;
+  }
+  
+  // Replace with exam handler
+  closeBtn.onclick = () => {
+    // Close current case
+    const viewer = document.getElementById('viewer');
+    viewer.classList.remove('show');
+    
+    // Advance to next case
+    randomExamIndex++;
+    
+    if (randomExamIndex < randomExamQueue.length) {
+      // Short delay before next case
+      setTimeout(() => {
+        openRandomExamCase();
+      }, 500);
+    } else {
+      // Exam complete - will show summary in openRandomExamCase
+      openRandomExamCase();
+      
+      // Restore original close handler
+      if (closeBtn._originalHandler) {
+        closeBtn.onclick = closeBtn._originalHandler;
+      }
+    }
+  };
+}
+
 /* ---------- Public init ---------- */
 export function initUI(){
   const chipEls=[];
@@ -1373,16 +1700,14 @@ export function initUI(){
     render();
   };
 
-  document.getElementById('randomOne').onclick=()=>{
+  // Random Exam: One case from each major category
+  document.getElementById('randomOne').onclick = startRandomExam;
+  
+  // Random Case: Single random case
+  document.getElementById('randomSet').onclick=()=>{
     const c = randomPick(getFiltered());
     if(!c) return alert('No cases loaded.');
     window.openViewer(c);
-  };
-  document.getElementById('randomSet').onclick=()=>{
-    const list = getFiltered();
-    if(!list.length) return alert('No cases loaded.');
-    const n = Math.min(5, list.length);
-    alert("Random set:\n\n" + shuffle([...list]).slice(0,n).map(c=>`• ${c.title} — ${c.subspecialty}`).join('\n'));
   };
 
   document.getElementById('vMicBtn')?.addEventListener('click', toggleMic);
@@ -1446,9 +1771,12 @@ document.getElementById('gradeBtn')?.addEventListener('click', async () => {
   const caseObj = window.__currentCaseForGrading;
   if (!caseObj) return;
 
-  // Show loading state immediately (no heuristic!)
+  // Show loading state in BOTH feedback area AND sidebar notification
   if (vFeedback) vFeedback.textContent = '⏳ Grading your answer with AI...';
   if (vScore) vScore.textContent = 'Grading...';
+  
+  // Add notification to sidebar
+  showSidebarNotification('⏳ Grading in progress...');
 
   try {
     // Call LLM grading directly
@@ -1481,13 +1809,19 @@ document.getElementById('gradeBtn')?.addEventListener('click', async () => {
 
     // Update score display
     const totalRubric = (caseObj.rubric || []).length;
-    const rubricScore = `${score.rubricHit}/${totalRubric}`;
+    const partials = score.rubricPartial || 0;
+    const rubricScore = partials > 0 
+      ? `${score.rubricHit}+${partials}/${totalRubric}` 
+      : `${score.rubricHit}/${totalRubric}`;
     const percentScore = `${Math.round(score.similarity * 100)}%`;
     const gradeScore = letter(score);
     
     if (vScore) {
       vScore.textContent = `${percentScore} • ${rubricScore} • ${gradeScore}`;
     }
+    
+    // Show success notification
+    showSidebarNotification(`✅ Graded: ${gradeScore}`, 3000);
 
     // Record attempt with LLM score
     recordAttempt({
@@ -1512,6 +1846,9 @@ document.getElementById('gradeBtn')?.addEventListener('click', async () => {
     if (vScore) {
       vScore.textContent = 'Error';
     }
+    
+    // Show error notification
+    showSidebarNotification('❌ Grading failed', 3000);
     
     return; // Don't record attempt if grading failed
   }

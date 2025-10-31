@@ -21,6 +21,7 @@ CRITICAL GRADING RULES - BE VERY GENEROUS:
    Examples:
    - "stranding" in appendicitis = "periappendiceal stranding" ✓
    - "fluid" near appendix = "periappendiceal fluid" ✓
+   - "dilated appendix" = "enlarged appendix" = ">6mm appendix" ✓ (measurement not required!)
    - "echogenicity of cortex is normal" = "cortical sparing" ✓
    - "no cortical involvement" = "cortical sparing" ✓
    - "hyperemia" in scrotal US = "hyperemia of epididymis" ✓
@@ -30,22 +31,25 @@ CRITICAL GRADING RULES - BE VERY GENEROUS:
    - "complicated fluid" = "complex fluid" = "septated collection" ✓
    - "enlargement" = "enlarged" = "increased size" = "dilated" ✓
    - "no perforation" = "no free air" = "no abscess" (when addressing complications) ✓
+   - Specific measurements (">6mm") are NOT required if concept is clearly stated ✓
 
 3. **Implicit information**: If they describe something that implies the rubric item, COUNT IT
    - Describing normal cortex while abnormal medulla implies cortical sparing ✓
    - Mentioning findings in proper anatomic context counts even without explicit anatomic qualifier ✓
    - "I would compare to the other side" = mentions contralateral comparison ✓
+   - "dilated" or "enlarged" inherently implies abnormal size ✓
 
 4. **Focus on knowledge demonstrated, not exact wording**: 
    - Did they show they understand the finding? → HIT
    - Did they use slightly different terminology? → Still a HIT
    - Did they describe the concept without naming it? → Still a HIT
+   - Did they omit a specific measurement but describe the finding? → Still a HIT
+   - Did they partially address it but miss key details? → PARTIAL
 
-5. **Do NOT penalize for**:
-   - Missing anatomic qualifiers when obvious from context
-   - Using synonyms or paraphrases
-   - Describing a finding instead of naming it
-   - Slightly different word order or phrasing
+5. **Use PARTIAL for**:
+   - Mentioned the concept but incomplete (e.g., said "enlargement" but didn't specify which structure)
+   - Got most of it right but missed a critical qualifier
+   - Demonstrated partial understanding but needs more detail
 
 6. **Only mark as MISS if**:
    - They truly didn't mention or describe the concept at all
@@ -53,15 +57,45 @@ CRITICAL GRADING RULES - BE VERY GENEROUS:
    - The concept is completely absent from their response
 
 REQUIRED OUTPUT FORMAT:
-Provide a JSON response with:
-{
-  "rubricHit": <number of rubric items covered>,
-  "rubricMiss": <number of rubric items missed>,
-  "similarity": <0.0 to 1.0 score - be generous, 0.7+ for good answers>,
-  "hits": [<list of covered rubric items>],
-  "misses": [<list of missed rubric items>],
-  "feedback": "<detailed paragraph with: 1) what they did well, 2) specific gaps if any, 3) encouragement>"
-}
+You MUST provide feedback in TWO parts:
+
+PART 1 - Detailed Feedback (human-readable):
+1) **What was done well:**
+   [List specific strengths]
+
+2) **Specific gaps or incorrect statements:**
+   [List specific issues]
+
+3) **Rubric mapping:**
+   [For EACH rubric point, state Hit/Partial/Miss]
+   - Rubric item 1: **Hit/Partial/Miss** - Brief explanation
+   - Rubric item 2: **Hit/Partial/Miss** - Brief explanation
+   [etc.]
+
+4) **Coaching paragraph:**
+   [Constructive feedback]
+
+PART 2 - Structured Score (CRITICAL - THIS MUST BE PARSEABLE):
+At the very end, include this exact format on separate lines:
+
+SCORE_DATA_START
+HITS: <number>
+PARTIALS: <number>
+MISSES: <number>
+TOTAL: <number>
+SIMILARITY: <0.00 to 1.00>
+SCORE_DATA_END
+
+Example:
+SCORE_DATA_START
+HITS: 7
+PARTIALS: 1
+MISSES: 1
+TOTAL: 9
+SIMILARITY: 0.83
+SCORE_DATA_END
+
+Note: SIMILARITY should be calculated as (HITS + 0.5*PARTIALS) / TOTAL
 
 Remember: This is oral boards training. The goal is to help them learn, not to be pedantic about exact wording. If they demonstrated the knowledge, give them credit.`,
     llmInputs: {
@@ -183,10 +217,11 @@ export async function gradeWithLLM({ caseObj, transcript, heur }) {
   }
   
   const data = await res.json();
-  console.debug('[LLM] success');
+  console.log('[LLM] Raw response received:', JSON.stringify(data, null, 2));
   
-  // If LLM returns structured score data, use it
+  // Check if LLM returns structured score data
   if (data.rubricHit !== undefined && data.similarity !== undefined) {
+    console.log('[LLM] ✅ Valid JSON format received');
     return {
       feedback: data.feedback || 'LLM feedback received',
       score: {
@@ -200,6 +235,216 @@ export async function gradeWithLLM({ caseObj, transcript, heur }) {
     };
   }
   
-  // Otherwise return whatever the LLM gave us
-  return data;
+  // Fallback: Parse text-based feedback
+  const feedbackText = data.feedback || data.message || JSON.stringify(data);
+  console.log('[LLM] ⚠️ No structured JSON, attempting to parse text feedback...');
+  
+  // Try to parse rubric mapping from text
+  const parsedScore = parseTextFeedback(feedbackText, caseObj.rubric || []);
+  
+  if (parsedScore.rubricHit > 0 || parsedScore.rubricMiss > 0) {
+    console.log('[LLM] ✅ Successfully parsed text feedback:', parsedScore);
+    return {
+      feedback: feedbackText,
+      score: parsedScore
+    };
+  }
+  
+  // If parsing failed, return error
+  console.error('[LLM] ❌ Could not parse feedback into scores');
+  
+  return {
+    feedback: `⚠️ BACKEND ERROR: Invalid JSON format returned
+
+Expected format:
+{
+  "rubricHit": 7,           ← NUMBER (missing or wrong type)
+  "rubricMiss": 1,          ← NUMBER 
+  "similarity": 0.875,      ← NUMBER between 0 and 1 (missing or wrong type)
+  "hits": ["item1", ...],   ← ARRAY of strings
+  "misses": ["item2"],      ← ARRAY of strings
+  "feedback": "text..."     ← STRING
+}
+
+What your backend returned:
+${JSON.stringify(data, null, 2)}
+
+Check your backend console logs. The LLM prompt clearly asks for JSON.
+Make sure your backend code extracts the JSON from the LLM response.`,
+    score: {
+      similarity: 0,
+      rubricHit: 0,
+      rubricMiss: caseObj.rubric?.length || 0,
+      hits: [],
+      misses: caseObj.rubric || [],
+      isHeuristic: false
+    }
+  };
+}
+
+/* ========== Parse text-based feedback into structured score ========== */
+function parseTextFeedback(feedbackText, rubric) {
+  console.log('[parseTextFeedback] Parsing feedback...');
+  console.log('[parseTextFeedback] Feedback length:', feedbackText.length, 'chars');
+  
+  // First, try to extract structured SCORE_DATA block
+  const scoreDataMatch = feedbackText.match(/SCORE_DATA_START\s+([\s\S]*?)\s+SCORE_DATA_END/);
+  
+  if (scoreDataMatch) {
+    console.log('[parseTextFeedback] Found SCORE_DATA block!');
+    const scoreBlock = scoreDataMatch[1];
+    
+    const hitsMatch = scoreBlock.match(/HITS:\s*(\d+)/i);
+    const partialsMatch = scoreBlock.match(/PARTIALS:\s*(\d+)/i);
+    const missesMatch = scoreBlock.match(/MISSES:\s*(\d+)/i);
+    const totalMatch = scoreBlock.match(/TOTAL:\s*(\d+)/i);
+    const simMatch = scoreBlock.match(/SIMILARITY:\s*(\d*\.?\d+)/i);
+    
+    if (hitsMatch && missesMatch && simMatch) {
+      const hits = parseInt(hitsMatch[1], 10);
+      const partials = partialsMatch ? parseInt(partialsMatch[1], 10) : 0;
+      const misses = parseInt(missesMatch[1], 10);
+      const similarity = parseFloat(simMatch[1]);
+      
+      console.log('[parseTextFeedback] ✅ Parsed SCORE_DATA:', {
+        hits,
+        partials,
+        misses,
+        similarity: Math.round(similarity * 100) + '%'
+      });
+      
+      return {
+        similarity,
+        rubricHit: hits,
+        rubricPartial: partials,
+        rubricMiss: misses,
+        hits: [],
+        misses: [],
+        isHeuristic: false
+      };
+    }
+  }
+  
+  // Fallback: parse from rubric mapping section
+  let hits = 0;
+  let partials = 0;
+  let misses = 0;
+  const hitsList = [];
+  const partialsList = [];
+  const missesList = [];
+  
+  // Look for the "3) Rubric mapping:" section
+  const rubricSection = feedbackText.match(/3\)[\s\S]*?Rubric mapping:[\s\S]*?(?=4\)|$)/i);
+  
+  if (rubricSection) {
+    const sectionText = rubricSection[0];
+    console.log('[parseTextFeedback] Found rubric section');
+    
+    const lines = sectionText.split('\n');
+    console.log('[parseTextFeedback] Processing', lines.length, 'lines');
+    
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.length < 5) continue;
+      
+      console.log('[parseTextFeedback] Checking line:', trimmed.substring(0, 80));
+      
+      // Match multiple patterns:
+      // Pattern 1: "- **Item:** Hit" (bold item, plain status)
+      // Pattern 2: "- Item: **Hit**" (plain item, bold status)
+      // Pattern 3: "- Item: Hit" (all plain)
+      
+      // Check for Hit
+      if (/:\s*Hit\b/i.test(trimmed)) {
+        // Extract item text before the colon (remove any bold markers)
+        const itemMatch = trimmed.match(/^[-•*]?\s*(.+?):\s*Hit\b/i);
+        if (itemMatch) {
+          hits++;
+          const itemText = itemMatch[1].trim().replace(/\*\*/g, '');
+          hitsList.push(itemText);
+          console.log('[parseTextFeedback] ✅ HIT:', itemText);
+        }
+      }
+      // Check for Partial
+      else if (/:\s*Partial\b/i.test(trimmed)) {
+        const itemMatch = trimmed.match(/^[-•*]?\s*(.+?):\s*Partial\b/i);
+        if (itemMatch) {
+          partials++;
+          const itemText = itemMatch[1].trim().replace(/\*\*/g, '');
+          partialsList.push(itemText);
+          console.log('[parseTextFeedback] ⚠️ PARTIAL:', itemText);
+        }
+      }
+      // Check for Miss
+      else if (/:\s*Miss\b/i.test(trimmed)) {
+        const itemMatch = trimmed.match(/^[-•*]?\s*(.+?):\s*Miss\b/i);
+        if (itemMatch) {
+          misses++;
+          const itemText = itemMatch[1].trim().replace(/\*\*/g, '');
+          missesList.push(itemText);
+          console.log('[parseTextFeedback] ❌ MISS:', itemText);
+        }
+      }
+    }
+  } else {
+    console.warn('[parseTextFeedback] Could not find "3) Rubric mapping:" section');
+  }
+  
+  // Fallback: simple count of "Hit", "Partial", and "Miss" words (with or without bold)
+  if (hits === 0 && misses === 0 && partials === 0) {
+    console.log('[parseTextFeedback] No line-by-line matches, counting all Hit/Partial/Miss words...');
+    
+    // Count occurrences more carefully - look for them after colons or in bold
+    const hitMatches = feedbackText.match(/:\s*\*\*Hit\*\*/gi) || 
+                       feedbackText.match(/:\s*Hit\b/gi);
+    const partialMatches = feedbackText.match(/:\s*\*\*Partial\*\*/gi) || 
+                           feedbackText.match(/:\s*Partial\b/gi);
+    const missMatches = feedbackText.match(/:\s*\*\*Miss\*\*/gi) || 
+                        feedbackText.match(/:\s*Miss\b/gi);
+    
+    hits = hitMatches ? hitMatches.length : 0;
+    partials = partialMatches ? partialMatches.length : 0;
+    misses = missMatches ? missMatches.length : 0;
+    
+    console.log('[parseTextFeedback] Word count - Hits:', hits, 'Partials:', partials, 'Misses:', misses);
+  }
+  
+  const totalRubric = rubric.length;
+  const totalCounted = hits + partials + misses;
+  
+  console.log('[parseTextFeedback] Counted:', totalCounted, 'items (Hits:', hits, 'Partials:', partials, 'Misses:', misses, ') vs Rubric:', totalRubric);
+  
+  // Validate counts
+  if (totalCounted > totalRubric) {
+    console.warn('[parseTextFeedback] Counted more items than rubric has, scaling down');
+    const scale = totalRubric / totalCounted;
+    hits = Math.round(hits * scale);
+    partials = Math.round(partials * scale);
+    misses = totalRubric - hits - partials;
+  } else if (totalCounted < totalRubric) {
+    console.warn('[parseTextFeedback] Counted fewer items than rubric has, assuming rest are misses');
+    misses = totalRubric - hits - partials;
+  }
+  
+  // Calculate similarity: full credit for hits, half credit for partials
+  const similarity = totalRubric > 0 ? (hits + (partials * 0.5)) / totalRubric : 0;
+  
+  console.log('[parseTextFeedback] Final score:', {
+    hits,
+    partials,
+    misses,
+    totalRubric,
+    similarity: Math.round(similarity * 100) + '%'
+  });
+  
+  return {
+    similarity,
+    rubricHit: hits,
+    rubricPartial: partials,
+    rubricMiss: misses,
+    hits: hitsList,
+    partials: partialsList,
+    misses: missesList,
+    isHeuristic: false
+  };
 }

@@ -70,7 +70,7 @@ async function loadExistingCases() {
 // Suggest next case ID based on subspecialty selection
 function suggestNextCaseId() {
     const subspecialty = document.getElementById('subspecialty').value;
-    if (!subspecialty || !window.__caseCounts) return;
+    if (!subspecialty || !window.__existingCases) return;
     
     // Map subspecialty to prefix
     const prefixMap = {
@@ -87,12 +87,34 @@ function suggestNextCaseId() {
     };
     
     const prefix = prefixMap[subspecialty] || 'case';
-    const count = window.__caseCounts[subspecialty] || 0;
-    const nextNum = String(count + 1).padStart(3, '0');
-    const suggestedId = `${prefix}-${nextNum}`;
+    
+    // Get all existing case IDs and titles for this subspecialty
+    const existingCases = window.__existingCases.filter(c => c.subspecialty === subspecialty);
+    const existingIds = new Set(existingCases.map(c => c.id));
+    const existingTitles = new Set(existingCases.map(c => c.title));
+    
+    // Find next available number
+    let nextNum = 1;
+    let suggestedId = `${prefix}-${String(nextNum).padStart(3, '0')}`;
+    
+    while (existingIds.has(suggestedId)) {
+        nextNum++;
+        suggestedId = `${prefix}-${String(nextNum).padStart(3, '0')}`;
+    }
+    
+    // Find next available case title
+    let suggestedTitle = `Case ${nextNum}`;
+    let titleNum = nextNum;
+    
+    while (existingTitles.has(suggestedTitle)) {
+        titleNum++;
+        suggestedTitle = `Case ${titleNum}`;
+    }
     
     document.getElementById('caseId').value = suggestedId;
-    document.getElementById('title').value = `Case ${count + 1}`;
+    document.getElementById('title').value = suggestedTitle;
+    
+    console.log(`Suggested unique ID: ${suggestedId}, Title: ${suggestedTitle}`);
 }
 
 // Upload file to S3
@@ -325,6 +347,27 @@ async function submitCase(e) {
         return;
     }
 
+    // Validate uniqueness
+    const caseId = document.getElementById('caseId').value.trim();
+    const title = document.getElementById('title').value.trim();
+    
+    if (window.__existingCases) {
+        const idExists = window.__existingCases.some(c => c.id === caseId);
+        const titleExists = window.__existingCases.some(c => c.title === title);
+        
+        if (idExists) {
+            alert(`❌ Case ID "${caseId}" already exists! Please use a unique ID.`);
+            document.getElementById('caseId').focus();
+            return;
+        }
+        
+        if (titleExists) {
+            alert(`❌ Case title "${title}" already exists! Please use a unique title.`);
+            document.getElementById('title').focus();
+            return;
+        }
+    }
+
     const submitBtn = document.getElementById('submitBtn');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Creating...';
@@ -447,3 +490,34 @@ setupReferenceUpload();
 document.getElementById('caseForm').addEventListener('submit', submitCase);
 document.getElementById('addRubricBtn').addEventListener('click', addRubricPoint);
 document.getElementById('subspecialty').addEventListener('change', suggestNextCaseId);
+
+// Real-time uniqueness validation
+document.getElementById('caseId').addEventListener('input', (e) => {
+    const value = e.target.value.trim();
+    if (!value || !window.__existingCases) return;
+    
+    const exists = window.__existingCases.some(c => c.id === value);
+    if (exists) {
+        e.target.style.borderColor = '#EF5350';
+        e.target.style.boxShadow = '0 0 0 2px rgba(239, 83, 80, 0.2)';
+        showStatus('error', `⚠️ Case ID "${value}" already exists!`);
+    } else {
+        e.target.style.borderColor = '';
+        e.target.style.boxShadow = '';
+    }
+});
+
+document.getElementById('title').addEventListener('input', (e) => {
+    const value = e.target.value.trim();
+    if (!value || !window.__existingCases) return;
+    
+    const exists = window.__existingCases.some(c => c.title === value);
+    if (exists) {
+        e.target.style.borderColor = '#EF5350';
+        e.target.style.boxShadow = '0 0 0 2px rgba(239, 83, 80, 0.2)';
+        showStatus('error', `⚠️ Case title "${value}" already exists!`);
+    } else {
+        e.target.style.borderColor = '';
+        e.target.style.boxShadow = '';
+    }
+});
